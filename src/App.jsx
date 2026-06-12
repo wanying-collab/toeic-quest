@@ -22,7 +22,7 @@ import {
   vocabularyBank,
   vocabularyCategories,
   vocabularyLevels,
-} from "./data/vocabulary";
+} from "./data/vocabulary/index.js";
 import { phraseBank } from "./data/phraseBank";
 import { sentencePatterns } from "./data/sentencePatterns";
 import { listeningLevels, listeningQuestions } from "./data/listeningQuestions";

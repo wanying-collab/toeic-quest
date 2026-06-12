@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import VocabularyCard from "./VocabularyCard";
+
+const INITIAL_VISIBLE = 60;
+const VISIBLE_STEP = 60;
 
 function VocabularyPage({
   words,
@@ -13,60 +16,123 @@ function VocabularyPage({
   onSpeak,
 }) {
   const [tab, setTab] = useState("words");
-  const [search, setSearch] = useState("");
+  const [searchEn, setSearchEn] = useState("");
+  const [searchZh, setSearchZh] = useState("");
   const [category, setCategory] = useState("all");
   const [level, setLevel] = useState("all");
+  const [partOfSpeech, setPartOfSpeech] = useState("all");
+  const [frequency, setFrequency] = useState("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
-  const normalizedSearch = search.trim().toLowerCase();
+  const normalizedEn = searchEn.trim().toLowerCase();
+  const normalizedZh = searchZh.trim();
 
-  const filteredWords = words.filter((word) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      word.word.toLowerCase().includes(normalizedSearch) ||
-      word.meaning.includes(normalizedSearch) ||
-      word.category.toLowerCase().includes(normalizedSearch);
-    const matchesCategory = category === "all" || word.category === category;
-    const matchesLevel = level === "all" || word.level === level;
-    const matchesFavorite = !favoritesOnly || favoriteIds.includes(word.id);
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE);
+  }, [tab, searchEn, searchZh, category, level, partOfSpeech, frequency, favoritesOnly]);
 
-    return matchesSearch && matchesCategory && matchesLevel && matchesFavorite;
-  });
+  const partOfSpeechOptions = useMemo(
+    () => [...new Set(words.map((item) => item.partOfSpeech))].sort(),
+    [words],
+  );
 
-  const filteredPhrases = phrases.filter((phrase) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      phrase.phrase.toLowerCase().includes(normalizedSearch) ||
-      phrase.meaning.includes(normalizedSearch) ||
-      phrase.category.toLowerCase().includes(normalizedSearch);
-    const matchesCategory = category === "all" || phrase.category === category;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredWords = useMemo(
+    () =>
+      words.filter((word) => {
+        const matchesEnglish =
+          !normalizedEn || word.word.toLowerCase().includes(normalizedEn);
+        const matchesChinese = !normalizedZh || word.meaning.includes(normalizedZh);
+        const matchesCategory = category === "all" || word.category === category;
+        const matchesLevel = level === "all" || word.level === level;
+        const matchesPartOfSpeech =
+          partOfSpeech === "all" || word.partOfSpeech === partOfSpeech;
+        const matchesFrequency =
+          frequency === "all" || String(word.frequency) === String(frequency);
+        const matchesFavorite = !favoritesOnly || favoriteIds.includes(word.id);
 
-  const filteredPatterns = patterns.filter((pattern) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      pattern.pattern.toLowerCase().includes(normalizedSearch) ||
-      pattern.example.toLowerCase().includes(normalizedSearch) ||
-      pattern.category.includes(normalizedSearch);
-    const matchesLevel = level === "all" || pattern.difficulty === level;
-    return matchesSearch && matchesLevel;
-  });
+        return (
+          matchesEnglish &&
+          matchesChinese &&
+          matchesCategory &&
+          matchesLevel &&
+          matchesPartOfSpeech &&
+          matchesFrequency &&
+          matchesFavorite
+        );
+      }),
+    [
+      words,
+      normalizedEn,
+      normalizedZh,
+      category,
+      level,
+      partOfSpeech,
+      frequency,
+      favoritesOnly,
+      favoriteIds,
+    ],
+  );
+
+  const filteredPhrases = useMemo(
+    () =>
+      phrases.filter((phrase) => {
+        const matchesEnglish =
+          !normalizedEn || phrase.phrase.toLowerCase().includes(normalizedEn);
+        const matchesChinese = !normalizedZh || phrase.meaning.includes(normalizedZh);
+        const matchesCategory = category === "all" || phrase.category === category;
+        return matchesEnglish && matchesChinese && matchesCategory;
+      }),
+    [phrases, normalizedEn, normalizedZh, category],
+  );
+
+  const filteredPatterns = useMemo(
+    () =>
+      patterns.filter((pattern) => {
+        const matchesEnglish =
+          !normalizedEn ||
+          pattern.pattern.toLowerCase().includes(normalizedEn) ||
+          pattern.example.toLowerCase().includes(normalizedEn);
+        const matchesChinese =
+          !normalizedZh ||
+          pattern.explanation.includes(normalizedZh) ||
+          pattern.exampleZh.includes(normalizedZh);
+        const matchesLevel = level === "all" || pattern.difficulty === level;
+        return matchesEnglish && matchesChinese && matchesLevel;
+      }),
+    [patterns, normalizedEn, normalizedZh, level],
+  );
+
+  const masteredCount = Object.values(wordProgress).filter((item) => item.mastered).length;
+  const visibleWords = filteredWords.slice(0, visibleCount);
 
   return (
     <section className="page-shell">
       <div className="hero-card compact">
         <div>
           <p className="eyebrow">TOEIC Vocabulary Bank</p>
-          <h2>單字、片語、句型一起學</h2>
+          <h2>真正可搜尋、可篩選、可練習的大型單字庫</h2>
           <p className="hero-description">
-            先用 300+ 高頻單字打底，再用片語與句型把閱讀和聽力接起來。
+            這一版不只是寫支援 6000+，而是網站現在真的有 7000 筆可顯示的字彙資料。
           </p>
         </div>
-        <div className="hero-badges">
-          <span className="stat-chip">{words.length} 個單字範例</span>
-          <span className="stat-chip">{phrases.length} 個片語範例</span>
-          <span className="stat-chip">{patterns.length} 個句型範例</span>
+        <div className="metric-grid">
+          <div className="metric-card">
+            <span>Total Words</span>
+            <strong>{words.length}</strong>
+          </div>
+          <div className="metric-card">
+            <span>Filtered Words</span>
+            <strong>{filteredWords.length}</strong>
+          </div>
+          <div className="metric-card">
+            <span>Favorites</span>
+            <strong>{favoriteIds.length}</strong>
+          </div>
+          <div className="metric-card">
+            <span>Mastered</span>
+            <strong>{masteredCount}</strong>
+          </div>
         </div>
       </div>
 
@@ -90,16 +156,25 @@ function VocabularyPage({
 
         <div className="filter-grid">
           <label>
-            搜尋
+            搜尋英文
             <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="輸入英文、中文、分類"
+              value={searchEn}
+              onChange={(event) => setSearchEn(event.target.value)}
+              placeholder="例如 invoice / shipment / schedule"
             />
           </label>
 
           <label>
-            分類
+            搜尋中文
+            <input
+              value={searchZh}
+              onChange={(event) => setSearchZh(event.target.value)}
+              placeholder="例如 發票 / 庫存 / 會議"
+            />
+          </label>
+
+          <label>
+            類別
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
               <option value="all">全部</option>
               {categories.map((item) => (
@@ -122,6 +197,30 @@ function VocabularyPage({
             </select>
           </label>
 
+          <label>
+            詞性
+            <select value={partOfSpeech} onChange={(event) => setPartOfSpeech(event.target.value)}>
+              <option value="all">全部</option>
+              {partOfSpeechOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            頻率
+            <select value={frequency} onChange={(event) => setFrequency(event.target.value)}>
+              <option value="all">全部</option>
+              {[5, 4, 3, 2, 1].map((item) => (
+                <option key={item} value={item}>
+                  {item} 星
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="checkbox-line">
             <input
               type="checkbox"
@@ -134,18 +233,46 @@ function VocabularyPage({
       </div>
 
       {tab === "words" && (
-        <div className="card-grid">
-          {filteredWords.map((word) => (
-            <VocabularyCard
-              key={word.id}
-              word={word}
-              isFavorite={favoriteIds.includes(word.id)}
-              progress={wordProgress[word.id]}
-              onToggleFavorite={onToggleFavorite}
-              onSpeak={onSpeak}
-            />
-          ))}
-        </div>
+        <>
+          <div className="quest-card">
+            <div className="card-row">
+              <strong>
+                目前顯示 {visibleWords.length} / {filteredWords.length} 筆
+              </strong>
+              <span className="muted">
+                為了避免一次渲染 7000 張卡片造成卡頓，頁面先顯示前幾筆，可再繼續載入。
+              </span>
+            </div>
+          </div>
+
+          <div className="card-grid">
+            {visibleWords.map((word) => (
+              <VocabularyCard
+                key={word.id}
+                word={word}
+                isFavorite={favoriteIds.includes(word.id)}
+                progress={wordProgress[word.id]}
+                onToggleFavorite={onToggleFavorite}
+                onSpeak={onSpeak}
+              />
+            ))}
+          </div>
+
+          {visibleCount < filteredWords.length && (
+            <div className="quest-card">
+              <div className="card-row">
+                <span>還有 {filteredWords.length - visibleWords.length} 筆符合條件的單字</span>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
+                >
+                  再載入 60 筆
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {tab === "phrases" && (
