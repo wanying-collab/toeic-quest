@@ -1,335 +1,234 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-const quizModes = [
-  { id: "listen-zh", label: "聽單字選中文" },
-  { id: "listen-en", label: "聽單字選英文" },
-  { id: "sentence-meaning", label: "聽短句選意思" },
-  { id: "word-meaning", label: "英文選中文" },
+const MODES = [
+  { id: "en-zh", label: "英文選中文" },
+  { id: "zh-en", label: "中文選英文" },
+  { id: "audio-zh", label: "聽單字選中文" },
+  { id: "audio-en", label: "聽單字選英文" },
+  { id: "spelling", label: "拼字練習" },
 ];
 
-function shuffle(items) {
-  return [...items].sort(() => Math.random() - 0.5);
+function randomPick(list) {
+  return list[Math.floor(Math.random() * list.length)];
 }
 
-function pickOptions(pool, current, field) {
-  const seen = new Set([current[field]]);
-  const distractors = [];
-
-  for (const item of shuffle(pool)) {
-    if (item.id === current.id) {
-      continue;
-    }
-    if (seen.has(item[field])) {
-      continue;
-    }
-    distractors.push(item[field]);
-    seen.add(item[field]);
-    if (distractors.length === 3) {
-      break;
-    }
-  }
-
-  return shuffle([current[field], ...distractors]);
+function shuffle(list) {
+  return [...list].sort(() => Math.random() - 0.5);
 }
 
-function createWordQuestion(word, pool, mode) {
-  if (mode === "listen-en") {
-    return {
-      id: `quiz-${mode}-${word.id}`,
-      relatedWordId: word.id,
-      difficulty: word.difficulty,
-      category: word.category,
-      promptLabel: "請聽單字，選出正確英文。",
-      prompt: "播放音檔後選出正確英文單字。",
-      speakText: word.word,
-      options: pickOptions(pool, word, "word"),
-      answer: word.word,
-      explanationZh: `${word.word} 的中文是「${word.meaning}」，是 ${word.category} 常見單字。`,
-      whyWrong: `這題核心是把聲音和字型連起來。${word.word} 的音先熟，拼字就不容易亂掉。`,
-      nextTip: "聽單字時，先抓重音位置，再看哪個拼字最像。",
-      keywordHint: word.pronunciation,
-      example: word.example,
-      exampleZh: word.exampleZh,
-    };
+function buildChoicePool(words, currentWord, mode) {
+  const others = shuffle(words.filter((item) => item.id !== currentWord.id)).slice(0, 3);
+
+  if (mode === "en-zh" || mode === "audio-zh") {
+    return shuffle([currentWord.meaning, ...others.map((item) => item.meaning)]);
   }
 
-  const answer = word.meaning;
+  return shuffle([currentWord.word, ...others.map((item) => item.word)]);
+}
+
+function createQuestion(words, mode) {
+  const currentWord = randomPick(words);
+
   return {
-    id: `quiz-${mode}-${word.id}`,
-    relatedWordId: word.id,
-    difficulty: word.difficulty,
-    category: word.category,
-    promptLabel:
-      mode === "word-meaning" ? "請選出正確中文。" : "請聽單字，選出正確中文。",
-    prompt: mode === "word-meaning" ? word.word : "播放音檔後選出正確中文。",
-    speakText: mode === "word-meaning" ? "" : word.word,
-    options: pickOptions(pool, word, "meaning"),
-    answer,
-    explanationZh: `${word.word} 的意思是「${word.meaning}」。例句：${word.exampleZh}`,
-    whyWrong: `這題要先把 ${word.word} 和中文「${word.meaning}」綁在一起，之後才有辦法進句子。`,
-    nextTip: "先記最常見的中文意思，再慢慢加上搭配詞。",
-    keywordHint: word.pronunciation,
-    example: word.example,
-    exampleZh: word.exampleZh,
+    currentWord,
+    mode,
+    options: mode === "spelling" ? [] : buildChoicePool(words, currentWord, mode),
   };
 }
 
-function createSentenceQuestion(question) {
-  return {
-    id: question.id,
-    relatedWordId: null,
-    difficulty: question.difficulty,
-    category: question.focus,
-    promptLabel: question.promptText,
-    prompt: "播放短句後選出正確中文。",
-    speakText: question.speakText,
-    options: question.options,
-    answer: question.answer,
-    explanationZh: question.explanationZh,
-    whyWrong: question.whyWrong,
-    nextTip: question.nextTip,
-    keywordHint: question.keywordHint,
-    example: question.transcript,
-    exampleZh: question.answer,
-  };
-}
-
-export default function QuizPage({
-  vocabulary,
-  listeningQuestions,
-  onSpeak,
-  onRecordAnswer,
-  practiceTarget,
-  onPracticeHandled,
-}) {
-  const [mode, setMode] = useState("listen-zh");
-  const [difficulty, setDifficulty] = useState("easy");
-  const [category, setCategory] = useState("all");
-  const [currentQuestion, setCurrentQuestion] = useState(null);
+function QuizPage({ words, levels, onSpeak, onRecordAnswer }) {
+  const [mode, setMode] = useState("en-zh");
+  const [level, setLevel] = useState("all");
+  const [question, setQuestion] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [typedAnswer, setTypedAnswer] = useState("");
 
-  const vocabularyPool = useMemo(() => {
-    return vocabulary.filter((word) => {
-      const matchDifficulty = difficulty === "all" || word.difficulty === difficulty;
-      const matchCategory = category === "all" || word.category === category;
-      return matchDifficulty && matchCategory;
-    });
-  }, [vocabulary, difficulty, category]);
+  const pool = words.filter((word) => (level === "all" ? true : word.level === level));
 
-  const sentencePool = useMemo(() => {
-    return listeningQuestions.filter(
-      (item) => item.mode === "sentence-meaning" && (difficulty === "all" || item.difficulty === difficulty)
-    );
-  }, [listeningQuestions, difficulty]);
-
-  const categoryOptions = useMemo(() => {
-    return [...new Set(vocabulary.map((word) => word.category))];
-  }, [vocabulary]);
-
-  function generateQuestion(config = {}) {
-    const nextMode = config.mode ?? mode;
-    const forcedWordId = config.relatedWordId ?? null;
-    const forcedQuestionId = config.sourceId ?? null;
-
-    if (nextMode === "sentence-meaning") {
-      const baseQuestion =
-        sentencePool.find((item) => item.id === forcedQuestionId) ??
-        sentencePool[Math.floor(Math.random() * sentencePool.length)];
-      if (!baseQuestion) {
-        setCurrentQuestion(null);
-        return;
-      }
-      setCurrentQuestion(createSentenceQuestion(baseQuestion));
+  useEffect(() => {
+    if (pool.length > 3) {
+      setQuestion(createQuestion(pool, mode));
       setFeedback(null);
-      return;
+      setTypedAnswer("");
     }
+  }, [mode, level]);
 
-    const pool = vocabularyPool.length ? vocabularyPool : vocabulary;
-    const word =
-      pool.find((item) => item.id === forcedWordId) ??
-      pool[Math.floor(Math.random() * pool.length)];
-
-    if (!word) {
-      setCurrentQuestion(null);
-      return;
+  useEffect(() => {
+    if (!question && pool.length > 3) {
+      setQuestion(createQuestion(pool, mode));
     }
+  }, [pool, mode, question]);
 
-    setCurrentQuestion(createWordQuestion(word, pool, nextMode));
-    setFeedback(null);
+  if (pool.length <= 3 || !question) {
+    return (
+      <section className="page-shell">
+        <article className="quest-card">
+          <h2>題庫準備中</h2>
+          <p>目前這個篩選條件下的單字太少，請切換其他難度再試一次。</p>
+        </article>
+      </section>
+    );
   }
 
-  useEffect(() => {
-    generateQuestion();
-  }, [mode, difficulty, category]);
+  const { currentWord } = question;
 
-  useEffect(() => {
-    if (practiceTarget?.route !== "quiz") {
-      return;
-    }
+  const promptMap = {
+    "en-zh": currentWord.word,
+    "zh-en": currentWord.meaning,
+    "audio-zh": "播放單字後選出正確中文",
+    "audio-en": "播放單字後選出正確英文",
+    spelling: `請輸入「${currentWord.meaning}」的英文`,
+  };
 
-    if (practiceTarget.quizMode) {
-      setMode(practiceTarget.quizMode);
-      generateQuestion({
-        mode: practiceTarget.quizMode,
-        relatedWordId: practiceTarget.relatedWordId,
-        sourceId: practiceTarget.sourceId,
-      });
-    }
-    onPracticeHandled();
-  }, [practiceTarget]);
+  const correctAnswer =
+    mode === "en-zh" || mode === "audio-zh" ? currentWord.meaning : currentWord.word;
 
-  useEffect(() => {
-    if (!currentQuestion?.speakText) {
-      return;
-    }
-    onSpeak(currentQuestion.speakText);
-  }, [currentQuestion?.id]);
+  const why = `這題的核心是 ${currentWord.word} = ${currentWord.meaning}。記住例句中的用法，之後在聽力和閱讀就比較不會卡住。`;
 
-  function handleAnswer(selectedAnswer) {
-    if (!currentQuestion || feedback) {
-      return;
-    }
-
-    const isCorrect = selectedAnswer === currentQuestion.answer;
-    const recordType = mode === "sentence-meaning" ? "listening" : "vocabulary";
+  const submitResult = (userAnswer) => {
+    const normalizedUser =
+      mode === "spelling" ? userAnswer.trim().toLowerCase() : userAnswer;
+    const normalizedCorrect =
+      mode === "spelling" ? correctAnswer.trim().toLowerCase() : correctAnswer;
+    const correct = normalizedUser === normalizedCorrect;
 
     const result = {
-      correct: isCorrect,
-      title: quizModes.find((item) => item.id === mode)?.label ?? "單字測驗",
-      prompt: currentQuestion.promptLabel,
-      sourceId: currentQuestion.id,
-      relatedWordId: currentQuestion.relatedWordId,
-      userAnswer: selectedAnswer,
-      correctAnswer: currentQuestion.answer,
-      explanationZh: currentQuestion.explanationZh,
-      whyWrong: currentQuestion.whyWrong,
-      nextTip: currentQuestion.nextTip,
-      route: "quiz",
-      type: recordType,
-      quizMode: mode,
-      difficulty: currentQuestion.difficulty,
+      correct,
+      userAnswer,
+      correctAnswer,
+      explanationZh: `${currentWord.word} 的意思是 ${currentWord.meaning}。`,
+      why,
+      example: currentWord.example,
+      exampleZh: currentWord.exampleZh,
     };
 
     setFeedback(result);
-    onRecordAnswer(result);
-  }
 
-  const emptyState = !currentQuestion;
+    onRecordAnswer({
+      domain: "vocabulary",
+      itemId: `vocab-${mode}-${currentWord.id}`,
+      relatedWordId: currentWord.id,
+      category: currentWord.category,
+      prompt: promptMap[mode],
+      correct,
+      userAnswer,
+      correctAnswer,
+      explanationZh: result.explanationZh,
+      reason: correct
+        ? "你有把英文和中文順利對起來。"
+        : `這題應該選 ${correctAnswer}，因為 ${currentWord.word} 的中文是 ${currentWord.meaning}。`,
+    });
+  };
+
+  const nextQuestion = () => {
+    setQuestion(createQuestion(pool, mode));
+    setFeedback(null);
+    setTypedAnswer("");
+  };
 
   return (
-    <section className="page-stack">
-      <div className="content-card">
-        <div className="section-heading">
-          <h2>基礎救援測驗</h2>
-          <p>先把單字聽懂，再把短句意思聽懂。你不需要一開始就扛完整對話。</p>
+    <section className="page-shell">
+      <div className="hero-card compact">
+        <div>
+          <p className="eyebrow">Quest Practice</p>
+          <h2>單字練習模式</h2>
+          <p className="hero-description">先把基本字打穩，聽力和閱讀才會開始真的看懂、聽懂。</p>
         </div>
+      </div>
 
-        <div className="pill-row">
-          {quizModes.map((item) => (
+      <div className="quest-card filter-bar">
+        <div className="tabs">
+          {MODES.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={`pill-button ${mode === item.id ? "is-active" : ""}`}
+              className={`tab-button ${mode === item.id ? "active" : ""}`}
               onClick={() => setMode(item.id)}
             >
               {item.label}
             </button>
           ))}
         </div>
-
-        <div className="filter-grid compact">
-          <label className="field">
-            <span>難度</span>
-            <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
-              <option value="all">全部</option>
-              <option value="easy">easy</option>
-              <option value="normal">normal</option>
-              <option value="green">green</option>
-              <option value="blue">blue</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>分類</span>
-            <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">全部</option>
-              {categoryOptions.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <label>
+          題目難度
+          <select value={level} onChange={(event) => setLevel(event.target.value)}>
+            <option value="all">全部</option>
+            {levels.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      {emptyState ? (
-        <div className="content-card">
-          <p>目前找不到符合條件的題目，請換一個難度或分類。</p>
-        </div>
-      ) : (
-        <div className="content-card question-card">
-          <div className="question-top">
-            <div>
-              <span className="eyebrow">{mode}</span>
-              <h3>{currentQuestion.promptLabel}</h3>
-              <p>{currentQuestion.prompt}</p>
-            </div>
-            {currentQuestion.speakText ? (
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => onSpeak(currentQuestion.speakText)}
-              >
-                重播語音
-              </button>
-            ) : null}
+      <article className="quest-card quiz-shell">
+        <div className="card-topline">
+          <div>
+            <p className="eyebrow">{currentWord.category}</p>
+            <h3>{MODES.find((item) => item.id === mode)?.label}</h3>
           </div>
+          {(mode === "audio-zh" || mode === "audio-en") && (
+            <button type="button" className="primary-button" onClick={() => onSpeak(currentWord.word)}>
+              播放發音
+            </button>
+          )}
+        </div>
 
+        <div className="quiz-prompt">
+          <p>{promptMap[mode]}</p>
+        </div>
+
+        {mode !== "spelling" ? (
           <div className="option-grid">
-            {currentQuestion.options.map((option) => (
+            {question.options.map((option) => (
               <button
                 key={option}
                 type="button"
-                className={`option-button ${
-                  feedback
-                    ? option === currentQuestion.answer
-                      ? "is-correct"
-                      : option === feedback.userAnswer
-                        ? "is-wrong"
-                        : ""
-                    : ""
-                }`}
-                onClick={() => handleAnswer(option)}
+                className="option-button"
+                onClick={() => submitResult(option)}
+                disabled={Boolean(feedback)}
               >
                 {option}
               </button>
             ))}
           </div>
+        ) : (
+          <form
+            className="spelling-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitResult(typedAnswer);
+            }}
+          >
+            <input
+              value={typedAnswer}
+              onChange={(event) => setTypedAnswer(event.target.value)}
+              placeholder="輸入英文拼字"
+              disabled={Boolean(feedback)}
+            />
+            <button type="submit" className="primary-button" disabled={!typedAnswer.trim() || Boolean(feedback)}>
+              送出答案
+            </button>
+          </form>
+        )}
 
-          {feedback ? (
-            <div className={`feedback-card ${feedback.correct ? "is-success" : "is-error"}`}>
-              <strong>{feedback.correct ? "答對了，繼續加溫。" : "這題先別急，我們拆開看。"}</strong>
-              <p>正確答案：{feedback.correctAnswer}</p>
-              <p>中文解釋：{feedback.explanationZh}</p>
-              <p>為什麼容易錯：{feedback.whyWrong}</p>
-              <p>下次怎麼判斷：{feedback.nextTip}</p>
-              <p>
-                例句：{currentQuestion.example}
-                <br />
-                <small>{currentQuestion.exampleZh}</small>
-              </p>
-              <button type="button" className="primary-button" onClick={() => generateQuestion()}>
-                下一題
-              </button>
-            </div>
-          ) : (
-            <div className="hint-box">
-              <span>提示</span>
-              <p>{currentQuestion.keywordHint}</p>
-            </div>
-          )}
-        </div>
-      )}
+        {feedback && (
+          <div className={`feedback-panel ${feedback.correct ? "correct" : "wrong"}`}>
+            <strong>{feedback.correct ? "答對了" : "答錯了"}</strong>
+            <p>正確答案：{feedback.correctAnswer}</p>
+            <p>{feedback.explanationZh}</p>
+            <p>{feedback.why}</p>
+            <p className="word-example">{feedback.example}</p>
+            <p className="word-example-zh">{feedback.exampleZh}</p>
+            <button type="button" className="primary-button" onClick={nextQuestion}>
+              下一題
+            </button>
+          </div>
+        )}
+      </article>
     </section>
   );
 }
+
+export default QuizPage;

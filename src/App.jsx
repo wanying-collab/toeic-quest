@@ -1,464 +1,585 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Dashboard from "./components/Dashboard";
-import GrammarCoach from "./components/GrammarCoach";
+import VocabularyPage from "./components/VocabularyPage";
+import QuizPage from "./components/QuizPage";
 import ListeningCoach from "./components/ListeningCoach";
+import GrammarCoach from "./components/GrammarCoach";
+import ReadingCoach from "./components/ReadingCoach";
 import MistakeBook from "./components/MistakeBook";
 import ProgressPanel from "./components/ProgressPanel";
-import QuizPage from "./components/QuizPage";
-import ReadingCoach from "./components/ReadingCoach";
-import VocabularyPage from "./components/VocabularyPage";
-import { grammarQuestions } from "./data/grammarQuestions";
-import { listeningQuestions } from "./data/listeningQuestions";
-import { readingQuestions } from "./data/readingQuestions";
+import StrategyCenter from "./components/StrategyCenter";
 import {
-  dailyTasks,
-  levelRoadmap,
-  listeningKeywordTips,
-  phaseTwoRoadmap,
-  readingSteps,
-  siteBranding,
+  APP_COPY,
+  BADGES,
+  DAILY_TASKS,
+  GRAMMAR_GUIDES,
+  KEYWORD_GUIDES,
+  LISTENING_TRAPS,
+  QUEST_LEVELS,
+  READING_LADDER,
 } from "./data/tips";
-import { vocabularyCategories, vocabularySeed } from "./data/vocabulary";
+import {
+  vocabularyBank,
+  vocabularyCategories,
+  vocabularyLevels,
+} from "./data/vocabulary";
+import { phraseBank } from "./data/phraseBank";
+import { sentencePatterns } from "./data/sentencePatterns";
+import { listeningLevels, listeningQuestions } from "./data/listeningQuestions";
+import { grammarQuestions, grammarTopics } from "./data/grammarQuestions";
+import { readingQuestions } from "./data/readingQuestions";
+import { strategySections } from "./data/strategyCenter";
 
-const STORAGE_KEY = "toeic-quest-progress-v1";
-const DEFAULT_PAGE = "dashboard";
-const VALID_PAGES = [
-  "dashboard",
-  "vocabulary",
-  "quiz",
-  "listening",
-  "grammar",
-  "reading",
-  "mistakes",
-  "progress",
+const STORAGE_KEY = "toeic-quest-state-v3";
+
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "vocabulary", label: "單字庫" },
+  { id: "quiz", label: "單字測驗" },
+  { id: "listening", label: "聽力訓練" },
+  { id: "grammar", label: "文法教學" },
+  { id: "reading", label: "閱讀練習" },
+  { id: "strategy", label: "技巧中心" },
+  { id: "mistakes", label: "錯題本" },
+  { id: "progress", label: "學習進度" },
 ];
 
-const DEFAULT_STORE = {
-  profile: {
-    targetLevelId: 2,
-    startingScore: 255,
-  },
-  vocabularyProgress: {},
-  questionProgress: {},
-  mistakes: {
-    vocabulary: [],
-    listening: [],
-    grammar: [],
-    reading: [],
-  },
-  history: [],
+const INITIAL_STATE = {
+  favorites: [],
   xp: 0,
+  streak: 0,
+  lastStudyDate: "",
+  checkIns: [],
+  answerLog: [],
+  mistakes: [],
+  reviewMap: {},
+  wordProgress: {},
 };
 
-function readStoredState() {
-  if (typeof window === "undefined") {
-    return DEFAULT_STORE;
-  }
-
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return DEFAULT_STORE;
-    }
-    const parsed = JSON.parse(saved);
-    return {
-      ...DEFAULT_STORE,
-      ...parsed,
-      profile: {
-        ...DEFAULT_STORE.profile,
-        ...parsed.profile,
-      },
-      mistakes: {
-        ...DEFAULT_STORE.mistakes,
-        ...parsed.mistakes,
-      },
-    };
-  } catch (error) {
-    return DEFAULT_STORE;
-  }
+function getTodayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function getPageFromHash() {
-  if (typeof window === "undefined") {
-    return DEFAULT_PAGE;
-  }
-  const hash = window.location.hash.replace("#", "");
-  return VALID_PAGES.includes(hash) ? hash : DEFAULT_PAGE;
+function addDays(dateKey, days) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
-function formatDate(value) {
-  return new Intl.DateTimeFormat("zh-TW", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+function diffDays(from, to) {
+  const start = new Date(`${from}T00:00:00`).getTime();
+  const end = new Date(`${to}T00:00:00`).getTime();
+  return Math.round((end - start) / (1000 * 60 * 60 * 24));
 }
 
-function addDays(days) {
-  const next = new Date();
-  next.setDate(next.getDate() + days);
-  return next.toISOString();
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
 }
 
-function buildReviewState(previous, correct) {
-  if (!correct) {
-    return {
-      correctStreak: 0,
-      nextReviewDate: addDays(1),
-      mastered: false,
-    };
+function ensureDailyEngagement(state) {
+  const today = getTodayKey();
+
+  if (state.lastStudyDate === today && state.checkIns.includes(today)) {
+    return state;
   }
 
-  const nextStreak = (previous?.correctStreak ?? 0) + 1;
+  let nextStreak = 1;
 
-  if (nextStreak >= 4) {
-    return {
-      correctStreak: nextStreak,
-      nextReviewDate: null,
-      mastered: true,
-    };
+  if (state.lastStudyDate) {
+    nextStreak = diffDays(state.lastStudyDate, today) === 1 ? state.streak + 1 : 1;
   }
 
-  const gapDays = nextStreak === 1 ? 1 : nextStreak === 2 ? 3 : 7;
   return {
-    correctStreak: nextStreak,
-    nextReviewDate: addDays(gapDays),
-    mastered: false,
+    ...state,
+    streak: nextStreak,
+    lastStudyDate: today,
+    checkIns: Array.from(new Set([...state.checkIns, today])),
   };
 }
 
-function getAccuracy(entries) {
-  if (!entries.length) {
-    return 0;
-  }
-  const correctCount = entries.filter((item) => item.correct).length;
-  return Math.round((correctCount / entries.length) * 100);
+function updateReviewEntry(previous = {}, label, correct) {
+  const today = getTodayKey();
+  const nextCorrect = correct ? (previous.consecutiveCorrect ?? 0) + 1 : 0;
+  const consecutiveCorrect = Math.min(nextCorrect, 4);
+  const mastered = correct && consecutiveCorrect >= 4;
+
+  const nextReviewAt = correct
+    ? mastered
+      ? addDays(today, 14)
+      : addDays(today, consecutiveCorrect === 1 ? 1 : consecutiveCorrect === 2 ? 3 : 7)
+    : addDays(today, 1);
+
+  return {
+    label,
+    consecutiveCorrect,
+    correctCount: (previous.correctCount ?? 0) + (correct ? 1 : 0),
+    wrongCount: (previous.wrongCount ?? 0) + (correct ? 0 : 1),
+    mastered,
+    nextReviewAt,
+    lastPracticed: today,
+  };
 }
 
-function estimateScore(stats) {
-  if (!stats.totalAnswers) {
-    return 255;
-  }
-
-  const score =
-    255 +
-    (stats.vocabularyAccuracy / 100) * 60 +
-    (stats.listeningAccuracy / 100) * 120 +
-    (stats.grammarAccuracy / 100) * 80 +
-    (stats.readingAccuracy / 100) * 100 +
-    Math.min(50, stats.learnedWords * 0.25) +
-    Math.min(65, stats.masteredWords * 0.8);
-
-  return Math.max(255, Math.min(730, Math.round(score)));
+function getInitialPage() {
+  const hash = window.location.hash.replace("#", "");
+  return NAV_ITEMS.some((item) => item.id === hash) ? hash : "dashboard";
 }
 
-function getLevelByScore(score) {
-  return (
-    levelRoadmap
-      .filter((level) => score >= level.score)
-      .slice(-1)[0] ?? levelRoadmap[0]
+function buildStats(state) {
+  const attempts = {
+    vocabulary: 0,
+    listening: 0,
+    grammar: 0,
+    reading: 0,
+  };
+
+  const correctCounts = {
+    vocabulary: 0,
+    listening: 0,
+    grammar: 0,
+    reading: 0,
+  };
+
+  const today = getTodayKey();
+  const taskProgress = {
+    vocabulary: 0,
+    listening: 0,
+    grammar: 0,
+    reading: 0,
+  };
+
+  state.answerLog.forEach((item) => {
+    if (attempts[item.domain] !== undefined) {
+      attempts[item.domain] += 1;
+      if (item.correct) {
+        correctCounts[item.domain] += 1;
+      }
+      if (item.date === today) {
+        taskProgress[item.domain] += 1;
+      }
+    }
+  });
+
+  const accuracy = {
+    vocabulary: attempts.vocabulary ? correctCounts.vocabulary / attempts.vocabulary : 0,
+    listening: attempts.listening ? correctCounts.listening / attempts.listening : 0,
+    grammar: attempts.grammar ? correctCounts.grammar / attempts.grammar : 0,
+    reading: attempts.reading ? correctCounts.reading / attempts.reading : 0,
+  };
+
+  const percentages = Object.fromEntries(
+    Object.entries(accuracy).map(([key, value]) => [key, Math.round(value * 100)]),
   );
-}
 
-function buildStats(store, vocabulary) {
-  const history = store.history;
-  const byType = {
-    vocabulary: history.filter((item) => item.type === "vocabulary"),
-    listening: history.filter((item) => item.type === "listening"),
-    grammar: history.filter((item) => item.type === "grammar"),
-    reading: history.filter((item) => item.type === "reading"),
-  };
-
-  const learnedWords = vocabulary.filter(
-    (word) => (word.totalAttempts ?? 0) > 0
+  const learnedWords = Object.values(state.wordProgress).filter((item) => item.correctCount > 0).length;
+  const masteredWords = Object.values(state.wordProgress).filter((item) => item.mastered).length;
+  const dueReviewCount = Object.values(state.wordProgress).filter(
+    (item) => !item.mastered && item.nextReviewAt && item.nextReviewAt <= today,
   ).length;
-  const masteredWords = vocabulary.filter((word) => word.mastered).length;
-  const favoriteWords = vocabulary.filter((word) => word.isFavorite).length;
-  const totalMistakes = Object.values(store.mistakes).reduce(
-    (sum, items) => sum + items.length,
-    0
+
+  const predictedScore = clamp(
+    Math.round(
+      255 +
+        learnedWords * 0.45 +
+        accuracy.listening * 155 +
+        accuracy.reading * 140 +
+        accuracy.grammar * 120 +
+        Math.min(state.streak, 14) * 4,
+    ),
+    255,
+    900,
   );
 
-  const stats = {
-    vocabularyAccuracy: getAccuracy(byType.vocabulary),
-    listeningAccuracy: getAccuracy(byType.listening),
-    grammarAccuracy: getAccuracy(byType.grammar),
-    readingAccuracy: getAccuracy(byType.reading),
+  return {
+    attempts,
+    accuracy,
+    percentages,
+    taskProgress,
     learnedWords,
     masteredWords,
-    favoriteWords,
-    totalMistakes,
-    xp: store.xp,
-    totalAnswers: history.length,
+    favoriteCount: state.favorites.length,
+    mistakeCount: state.mistakes.length,
+    dueReviewCount,
+    predictedScore,
+    predictedRange: [Math.max(255, predictedScore - 35), Math.min(990, predictedScore + 40)],
+    totalAnswers: state.answerLog.length,
+    xp: state.xp,
+    streak: state.streak,
   };
+}
+
+function buildWeakCategories(mistakes) {
+  const grouped = mistakes.reduce((accumulator, item) => {
+    const category = item.category || "未分類";
+    accumulator[category] = (accumulator[category] ?? 0) + item.wrongCount;
+    return accumulator;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([category, wrongCount]) => ({
+      category,
+      wrongCount,
+      advice: `${category} 最近錯得比較多，建議先回到這個主題做 5 到 10 題集中練習。`,
+    }))
+    .sort((left, right) => right.wrongCount - left.wrongCount)
+    .slice(0, 4);
+}
+
+function buildWeakInsight(stats, weakCategories) {
+  const skillRanking = [
+    { key: "listening", label: "聽力", value: stats.accuracy.listening },
+    { key: "reading", label: "閱讀", value: stats.accuracy.reading },
+    { key: "grammar", label: "文法", value: stats.accuracy.grammar },
+  ].sort((left, right) => left.value - right.value);
+
+  const weakestSkill = skillRanking[0];
+  const topCategory = weakCategories[0];
+
+  if (!weakestSkill || stats.totalAnswers === 0) {
+    return {
+      title: "先建立第一波資料",
+      summary: "目前答題資料還不多，先做幾輪單字、聽力和文法，系統就會開始抓出弱點。",
+      nextStep: "建議先完成今天的單字 20 個與聽力 10 題。",
+    };
+  }
+
+  if (topCategory) {
+    return {
+      title: `${weakestSkill.label}需要優先補強`,
+      summary: `最近整體最弱的是${weakestSkill.label}，而且 ${topCategory.category} 類題目錯得最多。`,
+      nextStep: `下一步先做 ${topCategory.category} 類題目，再回來測一次 ${weakestSkill.label}。`,
+    };
+  }
 
   return {
-    ...stats,
-    estimatedScore: estimateScore(stats),
+    title: `${weakestSkill.label}需要優先補強`,
+    summary: `目前 ${weakestSkill.label} 的正確率最低，先從這一項補起來最划算。`,
+    nextStep: `先安排 10 題${weakestSkill.label}練習，練完再看錯題原因。`,
   };
 }
 
-function getTodayProgress(history) {
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const todayItems = history.filter((item) => item.timestamp.startsWith(todayKey));
-  return todayItems.reduce(
-    (accumulator, item) => {
-      accumulator[item.type] = (accumulator[item.type] ?? 0) + 1;
-      return accumulator;
-    },
-    { vocabulary: 0, listening: 0, grammar: 0, reading: 0 }
+function buildAchievements(stats) {
+  return BADGES.map((badge) => ({
+    ...badge,
+    unlocked: badge.test(stats),
+  }));
+}
+
+function getCurrentLevel(predictedScore) {
+  return (
+    QUEST_LEVELS.find(
+      (level) => predictedScore >= level.minScore && predictedScore <= level.maxScore,
+    ) ?? QUEST_LEVELS[0]
   );
 }
 
-function getSuggestion(stats, dueReviewCount) {
-  if (dueReviewCount > 0) {
-    return `先把今天到期的 ${dueReviewCount} 個複習題做完，穩定記憶會比一直加新題更有效。`;
+function getNextTarget(predictedScore) {
+  if (predictedScore < 350) {
+    return {
+      target: 350,
+      advice: "先把單字聽熟，練會議、訂單、時間地點這些最常見短句。",
+    };
   }
-  if (stats.vocabularyAccuracy < 65) {
-    return "先回單字測驗，把基礎商務字和中文意思穩穩配對。";
+  if (predictedScore < 470) {
+    return {
+      target: 470,
+      advice: "把關鍵疑問詞和 Part 2 問答題穩住，閱讀從短句升到短文。",
+    };
   }
-  if (stats.listeningAccuracy < 65) {
-    return "先去聽力教練練 Where / When / Who，方向抓對分數就會起來。";
+  if (predictedScore < 550) {
+    return {
+      target: 550,
+      advice: "集中補綠色證書常見字與文法，開始練 Part 5 到 Part 7 定位。",
+    };
   }
-  if (stats.grammarAccuracy < 65) {
-    return "回文法區先補主詞動詞、時態和介系詞，這幾題最值得先拿。";
-  }
-  if (stats.readingAccuracy < 65) {
-    return "去閱讀教練練短句找關鍵字，先習慣先看題目再找答案。";
-  }
-  return "可以把難度拉到 normal，開始往 470 綠色挑戰前進。";
+  return {
+    target: 730,
+    advice: "開始用長對話、通知、email 和 Part 7 題型把速度與穩定度拉上去。",
+  };
 }
 
-function isReviewDue(item) {
-  return Boolean(
-    item?.nextReviewDate &&
-      !item?.mastered &&
-      new Date(item.nextReviewDate) <= new Date()
-  );
+function buildReviewQueue(wordProgress) {
+  return Object.entries(wordProgress)
+    .map(([key, value]) => ({
+      key,
+      ...value,
+    }))
+    .sort((left, right) => left.nextReviewAt.localeCompare(right.nextReviewAt));
 }
 
-export default function App() {
-  const [store, setStore] = useState(readStoredState);
-  const [currentPage, setCurrentPage] = useState(getPageFromHash);
-  const [practiceTarget, setPracticeTarget] = useState(null);
-
-  const vocabulary = useMemo(() => {
-    return vocabularySeed.map((word) => ({
-      ...word,
-      ...store.vocabularyProgress[word.id],
-    }));
-  }, [store.vocabularyProgress]);
-
-  const stats = useMemo(() => buildStats(store, vocabulary), [store, vocabulary]);
-  const todayProgress = useMemo(() => getTodayProgress(store.history), [store.history]);
-  const dueReviewCount = useMemo(() => {
-    const wordDue = Object.values(store.vocabularyProgress).filter(isReviewDue).length;
-    const questionDue = Object.values(store.questionProgress).filter(isReviewDue).length;
-    return wordDue + questionDue;
-  }, [store.vocabularyProgress, store.questionProgress]);
-
-  const currentLevel = useMemo(
-    () => getLevelByScore(stats.estimatedScore),
-    [stats.estimatedScore]
-  );
-  const targetLevel =
-    levelRoadmap.find((level) => level.id === store.profile.targetLevelId) ?? levelRoadmap[1];
-  const suggestion = getSuggestion(stats, dueReviewCount);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  }, [store]);
-
-  useEffect(() => {
-    function handleHashChange() {
-      setCurrentPage(getPageFromHash());
+function App() {
+  const [page, setPage] = useState(getInitialPage);
+  const [state, setState] = useState(() => {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      return INITIAL_STATE;
     }
+
+    try {
+      return { ...INITIAL_STATE, ...JSON.parse(saved) };
+    } catch {
+      return INITIAL_STATE;
+    }
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const next = getInitialPage();
+      setPage(next);
+    };
 
     window.addEventListener("hashchange", handleHashChange);
-    if (!window.location.hash) {
-      window.location.hash = `#${DEFAULT_PAGE}`;
-    }
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  useEffect(() => {
-    document.title = `${siteBranding.name} | ${siteBranding.subtitle}`;
-  }, []);
+  const stats = buildStats(state);
+  const weakCategories = buildWeakCategories(state.mistakes);
+  const weakInsight = buildWeakInsight(stats, weakCategories);
+  const achievements = buildAchievements(stats);
+  const currentLevel = getCurrentLevel(stats.predictedScore);
+  const nextTarget = getNextTarget(stats.predictedScore);
+  const reviewQueue = buildReviewQueue(state.wordProgress);
+  const checkedInToday = state.checkIns.includes(getTodayKey());
 
-  function navigate(page) {
-    window.location.hash = `#${page}`;
-  }
+  const navigate = (nextPage) => {
+    window.location.hash = nextPage;
+    setPage(nextPage);
+  };
 
-  function speakText(text) {
-    if (!text || typeof window === "undefined" || !window.speechSynthesis) {
+  const speakText = (text) => {
+    if (!("speechSynthesis" in window)) {
       return;
     }
 
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 0.92;
-    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
-  }
+  };
 
-  function updateGoal(levelId) {
-    setStore((previous) => ({
-      ...previous,
-      profile: {
-        ...previous.profile,
-        targetLevelId: levelId,
-      },
+  const toggleFavorite = (wordId) => {
+    setState((current) => ({
+      ...current,
+      favorites: current.favorites.includes(wordId)
+        ? current.favorites.filter((item) => item !== wordId)
+        : [...current.favorites, wordId],
     }));
-  }
+  };
 
-  function toggleFavorite(wordId) {
-    setStore((previous) => {
-      const current = previous.vocabularyProgress[wordId] ?? {};
-      return {
-        ...previous,
-        vocabularyProgress: {
-          ...previous.vocabularyProgress,
-          [wordId]: {
-            ...current,
-            isFavorite: !current.isFavorite,
-          },
-        },
+  const checkInToday = () => {
+    setState((current) => ensureDailyEngagement(current));
+  };
+
+  const recordAnswer = ({
+    domain,
+    itemId,
+    relatedWordId,
+    category,
+    prompt,
+    correct,
+    userAnswer,
+    correctAnswer,
+    explanationZh,
+    reason,
+  }) => {
+    setState((current) => {
+      const engaged = ensureDailyEngagement(current);
+      const today = getTodayKey();
+      const xpGain = correct ? 12 : 5;
+      const reviewKey = `${domain}:${itemId}`;
+      const label = relatedWordId
+        ? vocabularyBank.find((item) => item.id === relatedWordId)?.word ?? prompt
+        : prompt;
+
+      const nextReviewMap = {
+        ...engaged.reviewMap,
+        [reviewKey]: updateReviewEntry(engaged.reviewMap[reviewKey], label, correct),
       };
-    });
-  }
 
-  function recordAnswer(entry) {
-    const timestamp = new Date().toISOString();
+      const nextWordProgress = relatedWordId
+        ? {
+            ...engaged.wordProgress,
+            [relatedWordId]: updateReviewEntry(
+              engaged.wordProgress[relatedWordId],
+              vocabularyBank.find((item) => item.id === relatedWordId)?.word ?? label,
+              correct,
+            ),
+          }
+        : engaged.wordProgress;
 
-    setStore((previous) => {
-      const nextHistory = [
-        ...previous.history,
-        {
-          type: entry.type,
-          correct: entry.correct,
-          title: entry.title,
-          timestamp,
-        },
-      ].slice(-500);
+      const nextMistakes = correct
+        ? engaged.mistakes
+        : (() => {
+            const key = `${domain}:${itemId}`;
+            const existing = engaged.mistakes.find((item) => item.key === key);
+            if (existing) {
+              return engaged.mistakes.map((item) =>
+                item.key === key
+                  ? {
+                      ...item,
+                      userAnswer,
+                      correctAnswer,
+                      reason,
+                      wrongCount: item.wrongCount + 1,
+                      lastPracticed: today,
+                    }
+                  : item,
+              );
+            }
 
-      const questionKey = `${entry.type}:${entry.sourceId}`;
-      const existingQuestionProgress = previous.questionProgress[questionKey] ?? {};
-      const nextQuestionReview = buildReviewState(
-        existingQuestionProgress,
-        entry.correct
-      );
-
-      let nextVocabularyProgress = previous.vocabularyProgress;
-      if (entry.relatedWordId) {
-        const existingWordProgress = previous.vocabularyProgress[entry.relatedWordId] ?? {};
-        const nextWordReview = buildReviewState(existingWordProgress, entry.correct);
-        nextVocabularyProgress = {
-          ...previous.vocabularyProgress,
-          [entry.relatedWordId]: {
-            ...existingWordProgress,
-            ...nextWordReview,
-            totalAttempts: (existingWordProgress.totalAttempts ?? 0) + 1,
-            totalCorrect:
-              (existingWordProgress.totalCorrect ?? 0) + (entry.correct ? 1 : 0),
-            wrongCount:
-              (existingWordProgress.wrongCount ?? 0) + (entry.correct ? 0 : 1),
-            lastPracticedAt: timestamp,
-          },
-        };
-      }
-
-      const nextMistakes = { ...previous.mistakes };
-      if (!entry.correct) {
-        const bucket = [...(nextMistakes[entry.type] ?? [])];
-        const itemId = `${entry.type}-${entry.sourceId}`;
-        const existingIndex = bucket.findIndex((item) => item.id === itemId);
-        const nextItem = {
-          id: itemId,
-          title: entry.title,
-          prompt: entry.prompt,
-          userAnswer: entry.userAnswer,
-          correctAnswer: entry.correctAnswer,
-          whyWrong: entry.whyWrong,
-          wrongCount:
-            existingIndex >= 0 ? bucket[existingIndex].wrongCount + 1 : 1,
-          lastPracticedAt: formatDate(timestamp),
-          route: entry.route,
-          sourceId: entry.sourceId,
-          relatedWordId: entry.relatedWordId ?? null,
-          quizMode: entry.quizMode ?? null,
-          difficulty: entry.difficulty ?? "easy",
-        };
-
-        if (existingIndex >= 0) {
-          bucket[existingIndex] = nextItem;
-        } else {
-          bucket.unshift(nextItem);
-        }
-
-        nextMistakes[entry.type] = bucket.slice(0, 60);
-      }
+            return [
+              ...engaged.mistakes,
+              {
+                key,
+                domain,
+                itemId,
+                prompt,
+                userAnswer,
+                correctAnswer,
+                reason,
+                wrongCount: 1,
+                lastPracticed: today,
+                category,
+                explanationZh,
+              },
+            ];
+          })();
 
       return {
-        ...previous,
-        vocabularyProgress: nextVocabularyProgress,
-        questionProgress: {
-          ...previous.questionProgress,
-          [questionKey]: {
-            ...existingQuestionProgress,
-            ...nextQuestionReview,
-            lastPracticedAt: timestamp,
+        ...engaged,
+        xp: engaged.xp + xpGain,
+        answerLog: [
+          ...engaged.answerLog.slice(-799),
+          {
+            domain,
+            itemId,
+            category,
+            correct,
+            date: today,
           },
-        },
+        ],
         mistakes: nextMistakes,
-        history: nextHistory,
-        xp: previous.xp + (entry.correct ? 12 : 4),
+        reviewMap: nextReviewMap,
+        wordProgress: nextWordProgress,
       };
     });
-  }
+  };
 
-  function handleRetry(item) {
-    setPracticeTarget(item);
-    navigate(item.route);
-  }
+  const sharedPageProps = {
+    onSpeak: speakText,
+    onRecordAnswer: recordAnswer,
+  };
 
-  function clearPracticeTarget() {
-    setPracticeTarget(null);
-  }
+  let pageContent = null;
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard" },
-    { id: "vocabulary", label: "Vocabulary" },
-    { id: "quiz", label: "Quiz" },
-    { id: "listening", label: "Listening Coach" },
-    { id: "grammar", label: "Grammar Coach" },
-    { id: "reading", label: "Reading Coach" },
-    { id: "mistakes", label: "Mistake Book" },
-    { id: "progress", label: "Progress" },
-  ];
+  if (page === "dashboard") {
+    pageContent = (
+      <Dashboard
+        appCopy={APP_COPY}
+        dailyTasks={DAILY_TASKS}
+        taskProgress={stats.taskProgress}
+        stats={stats}
+        currentLevel={currentLevel}
+        nextTarget={nextTarget}
+        weakInsight={weakInsight}
+        achievements={achievements}
+        onNavigate={navigate}
+        onCheckIn={checkInToday}
+        checkedInToday={checkedInToday}
+      />
+    );
+  } else if (page === "vocabulary") {
+    pageContent = (
+      <VocabularyPage
+        words={vocabularyBank}
+        phrases={phraseBank}
+        patterns={sentencePatterns}
+        categories={vocabularyCategories}
+        levels={vocabularyLevels}
+        favoriteIds={state.favorites}
+        wordProgress={state.wordProgress}
+        onToggleFavorite={toggleFavorite}
+        onSpeak={speakText}
+      />
+    );
+  } else if (page === "quiz") {
+    pageContent = <QuizPage words={vocabularyBank} levels={vocabularyLevels} {...sharedPageProps} />;
+  } else if (page === "listening") {
+    pageContent = (
+      <ListeningCoach
+        levels={listeningLevels}
+        questions={listeningQuestions}
+        keywordGuides={KEYWORD_GUIDES}
+        trapGuides={LISTENING_TRAPS}
+        {...sharedPageProps}
+      />
+    );
+  } else if (page === "grammar") {
+    pageContent = (
+      <GrammarCoach
+        questions={grammarQuestions}
+        topics={grammarTopics}
+        guides={GRAMMAR_GUIDES}
+        onRecordAnswer={recordAnswer}
+      />
+    );
+  } else if (page === "reading") {
+    pageContent = (
+      <ReadingCoach items={readingQuestions} ladder={READING_LADDER} onRecordAnswer={recordAnswer} />
+    );
+  } else if (page === "strategy") {
+    pageContent = <StrategyCenter sections={strategySections} />;
+  } else if (page === "mistakes") {
+    pageContent = <MistakeBook mistakes={state.mistakes} onNavigate={navigate} />;
+  } else if (page === "progress") {
+    pageContent = (
+      <ProgressPanel
+        stats={stats}
+        levels={QUEST_LEVELS}
+        achievements={achievements}
+        weakCategories={weakCategories}
+        reviewQueue={reviewQueue}
+      />
+    );
+  }
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <span className="eyebrow">Every Word Counts</span>
-          <h1>{siteBranding.name}</h1>
-          <p>{siteBranding.subtitle}</p>
+          <div className="brand-mark">TQ</div>
+          <div>
+            <strong>{APP_COPY.title}</strong>
+            <p>{APP_COPY.subtitle}</p>
+          </div>
         </div>
-        <div className="topbar-meta">
-          <span>Repo: {siteBranding.repository}</span>
-          <a href={siteBranding.pagesUrl} target="_blank" rel="noreferrer">
-            GitHub Pages 路徑
-          </a>
+
+        <div className="topbar-stats">
+          <span>XP {stats.xp}</span>
+          <span>Streak {stats.streak}</span>
+          <span>估分 {stats.predictedScore}</span>
         </div>
       </header>
 
       <nav className="main-nav">
-        {navItems.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={`nav-button ${currentPage === item.id ? "is-active" : ""}`}
+            className={`nav-pill ${page === item.id ? "active" : ""}`}
             onClick={() => navigate(item.id)}
           >
             {item.label}
@@ -466,95 +587,14 @@ export default function App() {
         ))}
       </nav>
 
-      <main className="page-wrap">
-        {currentPage === "dashboard" ? (
-          <Dashboard
-            branding={siteBranding}
-            todayProgress={todayProgress}
-            stats={stats}
-            currentLevel={currentLevel}
-            targetLevel={targetLevel}
-            onGoalChange={updateGoal}
-            dueReviewCount={dueReviewCount}
-            suggestion={suggestion}
-            phaseTwoRoadmap={phaseTwoRoadmap}
-          />
-        ) : null}
-
-        {currentPage === "vocabulary" ? (
-          <VocabularyPage
-            vocabulary={vocabulary}
-            categories={vocabularyCategories}
-            onToggleFavorite={toggleFavorite}
-            onSpeak={speakText}
-          />
-        ) : null}
-
-        {currentPage === "quiz" ? (
-          <QuizPage
-            vocabulary={vocabulary}
-            listeningQuestions={listeningQuestions}
-            onSpeak={speakText}
-            onRecordAnswer={recordAnswer}
-            practiceTarget={practiceTarget}
-            onPracticeHandled={clearPracticeTarget}
-          />
-        ) : null}
-
-        {currentPage === "listening" ? (
-          <ListeningCoach
-            keywordTips={listeningKeywordTips}
-            questions={listeningQuestions}
-            onSpeak={speakText}
-            onRecordAnswer={recordAnswer}
-            practiceTarget={practiceTarget}
-            onPracticeHandled={clearPracticeTarget}
-          />
-        ) : null}
-
-        {currentPage === "grammar" ? (
-          <GrammarCoach
-            questions={grammarQuestions}
-            onRecordAnswer={recordAnswer}
-            practiceTarget={practiceTarget}
-            onPracticeHandled={clearPracticeTarget}
-          />
-        ) : null}
-
-        {currentPage === "reading" ? (
-          <ReadingCoach
-            questions={readingQuestions}
-            readingSteps={readingSteps}
-            onRecordAnswer={recordAnswer}
-            practiceTarget={practiceTarget}
-            onPracticeHandled={clearPracticeTarget}
-          />
-        ) : null}
-
-        {currentPage === "mistakes" ? (
-          <MistakeBook mistakes={store.mistakes} onRetry={handleRetry} />
-        ) : null}
-
-        {currentPage === "progress" ? (
-          <ProgressPanel
-            stats={stats}
-            levelRoadmap={levelRoadmap}
-            currentLevel={currentLevel}
-            targetLevel={targetLevel}
-            onGoalChange={updateGoal}
-            dueReviewCount={dueReviewCount}
-            phaseTwoRoadmap={phaseTwoRoadmap}
-          />
-        ) : null}
-      </main>
+      <main>{pageContent}</main>
 
       <footer className="app-footer">
-        <p>{siteBranding.mission}</p>
-        <p>
-          今日任務設定：
-          {dailyTasks.map((task) => task.label).join(" / ")}
-        </p>
+        <p>{APP_COPY.motto}</p>
+        <p>目前版本先以 255 起步救援為主，資料結構已預留擴充到 6000+ 單字、片語與進階題庫。</p>
       </footer>
     </div>
   );
 }
+
+export default App;

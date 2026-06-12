@@ -1,174 +1,247 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-function randomItem(items) {
-  return items[Math.floor(Math.random() * items.length)];
-}
-
-export default function ListeningCoach({
-  keywordTips,
+function ListeningCoach({
+  levels,
   questions,
+  keywordGuides,
+  trapGuides,
   onSpeak,
   onRecordAnswer,
-  practiceTarget,
-  onPracticeHandled,
 }) {
-  const [focus, setFocus] = useState("all");
-  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [tab, setTab] = useState("practice");
+  const [level, setLevel] = useState("all");
+  const [question, setQuestion] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [keywordFeedback, setKeywordFeedback] = useState({});
 
-  const keywordQuestions = useMemo(() => {
-    return questions.filter((item) => item.mode === "keyword");
-  }, [questions]);
-
-  const filteredQuestions = useMemo(() => {
-    return keywordQuestions.filter((item) => focus === "all" || item.focus === focus);
-  }, [keywordQuestions, focus]);
-
-  function generateQuestion(sourceId) {
-    const nextQuestion =
-      filteredQuestions.find((item) => item.id === sourceId) ?? randomItem(filteredQuestions);
-    setCurrentQuestion(nextQuestion ?? null);
-    setFeedback(null);
-  }
+  const pool = questions.filter((item) => (level === "all" ? true : item.level === Number(level)));
 
   useEffect(() => {
-    generateQuestion();
-  }, [focus]);
-
-  useEffect(() => {
-    if (practiceTarget?.route !== "listening") {
-      return;
+    if (pool.length > 0) {
+      setQuestion(pool[Math.floor(Math.random() * pool.length)]);
+      setFeedback(null);
     }
-    generateQuestion(practiceTarget.sourceId);
-    onPracticeHandled();
-  }, [practiceTarget]);
+  }, [level]);
 
   useEffect(() => {
-    if (currentQuestion?.speakText) {
-      onSpeak(currentQuestion.speakText);
+    if (!question && pool.length > 0) {
+      setQuestion(pool[Math.floor(Math.random() * pool.length)]);
     }
-  }, [currentQuestion?.id]);
+  }, [question, pool]);
 
-  function handleAnswer(option) {
-    if (!currentQuestion || feedback) {
+  const submitAnswer = (option) => {
+    if (!question) {
       return;
     }
 
-    const result = {
-      correct: option === currentQuestion.answer,
-      title: `${currentQuestion.focus} 關鍵字訓練`,
-      prompt: currentQuestion.promptText,
-      sourceId: currentQuestion.id,
+    const correct = option === question.answer;
+    setFeedback({ correct, option });
+
+    onRecordAnswer({
+      domain: "listening",
+      itemId: question.id,
+      category: question.category,
+      prompt: question.transcript,
+      correct,
       userAnswer: option,
-      correctAnswer: currentQuestion.answer,
-      explanationZh: currentQuestion.explanationZh,
-      whyWrong: currentQuestion.whyWrong,
-      nextTip: currentQuestion.nextTip,
-      route: "listening",
-      type: "listening",
-      difficulty: currentQuestion.difficulty,
-    };
+      correctAnswer: question.answer,
+      explanationZh: question.explanationZh,
+      reason: correct
+        ? question.why
+        : `${question.explanationZh} ${question.trapAnalysis ?? ""}`.trim(),
+    });
+  };
 
-    setFeedback(result);
-    onRecordAnswer(result);
-  }
+  const nextQuestion = () => {
+    setQuestion(pool[Math.floor(Math.random() * pool.length)]);
+    setFeedback(null);
+  };
 
   return (
-    <section className="page-stack">
-      <div className="card-grid two-col">
-        <div className="content-card">
-          <div className="section-heading">
-            <h2>聽力關鍵字教練</h2>
-            <p>先學會聽題目的第一個字，就能少猜很多題。</p>
-          </div>
-          <div className="keyword-grid">
-            {keywordTips.map((tip) => (
-              <button
-                key={tip.keyword}
-                type="button"
-                className={`keyword-card ${focus === tip.keyword ? "is-active" : ""}`}
-                onClick={() => setFocus((current) => (current === tip.keyword ? "all" : tip.keyword))}
-              >
-                <strong>{tip.keyword}</strong>
-                <span>{tip.focus}</span>
-                <small>{tip.examples.join(" / ")}</small>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="content-card accent-card">
-          <div className="section-heading">
-            <h2>陷阱提醒</h2>
-            <p>你現在最需要的是先避開最常見的誤導。</p>
-          </div>
-          <div className="trap-list">
-            <p>Where 題不要選時間字。</p>
-            <p>When 題不要被地點字吸走。</p>
-            <p>Who 題優先找人名、職稱。</p>
-            <p>How much 看價格；How long 看多久。</p>
-          </div>
+    <section className="page-shell">
+      <div className="hero-card compact">
+        <div>
+          <p className="eyebrow">Listening Coach</p>
+          <h2>聽力從單字開始，慢慢升到 TOEIC 題感</h2>
+          <p className="hero-description">
+            先練聲音和意思的連結，再進入疑問詞、關鍵字與短對話判斷。
+          </p>
         </div>
       </div>
 
-      {currentQuestion ? (
-        <div className="content-card question-card">
-          <div className="question-top">
-            <div>
-              <span className="eyebrow">{currentQuestion.focus}</span>
-              <h3>{currentQuestion.promptText}</h3>
-              <p>先聽第一個疑問詞，再決定你要找的是地點、時間、人物還是原因。</p>
-            </div>
+      <div className="quest-card filter-bar">
+        <div className="tabs">
+          {[
+            { id: "practice", label: "分級練習" },
+            { id: "keywords", label: "關鍵字教練" },
+            { id: "traps", label: "陷阱分析" },
+          ].map((item) => (
             <button
+              key={item.id}
               type="button"
-              className="ghost-button"
-              onClick={() => onSpeak(currentQuestion.speakText)}
+              className={`tab-button ${tab === item.id ? "active" : ""}`}
+              onClick={() => setTab(item.id)}
             >
-              重播語音
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "practice" && (
+          <label>
+            練習等級
+            <select value={level} onChange={(event) => setLevel(event.target.value)}>
+              <option value="all">全部</option>
+              {levels.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+
+      {tab === "practice" && question && (
+        <article className="quest-card quiz-shell">
+          <div className="card-topline">
+            <div>
+              <p className="eyebrow">
+                Level {question.level} / {question.difficulty.toUpperCase()}
+              </p>
+              <h3>{question.prompt}</h3>
+            </div>
+            <button type="button" className="primary-button" onClick={() => onSpeak(question.audioText)}>
+              播放語音
             </button>
           </div>
 
+          <p className="question-subtext">關鍵焦點：{question.keyword}</p>
+
           <div className="option-grid">
-            {currentQuestion.options.map((option) => (
+            {question.options.map((option) => (
               <button
                 key={option}
                 type="button"
-                className={`option-button ${
-                  feedback
-                    ? option === currentQuestion.answer
-                      ? "is-correct"
-                      : option === feedback.userAnswer
-                        ? "is-wrong"
-                        : ""
-                    : ""
-                }`}
-                onClick={() => handleAnswer(option)}
+                className="option-button"
+                onClick={() => submitAnswer(option)}
+                disabled={Boolean(feedback)}
               >
                 {option}
               </button>
             ))}
           </div>
 
-          {feedback ? (
-            <div className={`feedback-card ${feedback.correct ? "is-success" : "is-error"}`}>
-              <strong>{feedback.correct ? "有抓到方向。" : "這題錯在方向，不是記憶力。"}</strong>
-              <p>正確答案：{feedback.correctAnswer}</p>
-              <p>中文解釋：{feedback.explanationZh}</p>
-              <p>你為什麼會錯：{feedback.whyWrong}</p>
-              <p>下次怎麼判斷：{feedback.nextTip}</p>
-              <p>逐字稿：{currentQuestion.transcript}</p>
-              <button type="button" className="primary-button" onClick={() => generateQuestion()}>
-                再練一題
+          {feedback && (
+            <div className={`feedback-panel ${feedback.correct ? "correct" : "wrong"}`}>
+              <strong>{feedback.correct ? "答對了" : "答錯了"}</strong>
+              <p>正確答案：{question.answer}</p>
+              <p>{question.explanationZh}</p>
+              <p>{question.why}</p>
+              {question.trapAnalysis && (
+                <div className="tip-box">
+                  <strong>你剛剛可能卡住的點</strong>
+                  <p>{question.trapAnalysis}</p>
+                </div>
+              )}
+              <button type="button" className="primary-button" onClick={nextQuestion}>
+                下一題
               </button>
             </div>
-          ) : (
-            <div className="hint-box">
-              <span>提示</span>
-              <p>先鎖定：{currentQuestion.keywordHint}</p>
-            </div>
           )}
+        </article>
+      )}
+
+      {tab === "keywords" && (
+        <div className="card-grid">
+          {keywordGuides.map((guide) => (
+            <article key={guide.id} className="quest-card resource-card">
+              <div className="card-topline">
+                <div>
+                  <p className="eyebrow">{guide.prompt}</p>
+                  <h3>{guide.focus}</h3>
+                </div>
+              </div>
+              <p>{guide.explanation}</p>
+              <div className="bullet-box">
+                <strong>常見答案</strong>
+                <ul>
+                  {guide.commonAnswers.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bullet-box">
+                <strong>例句</strong>
+                <ul>
+                  {guide.examples.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="tip-box">
+                <strong>小練習</strong>
+                <p>{guide.drill.question}</p>
+                <div className="option-grid compact-grid">
+                  {guide.drill.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="option-button"
+                      onClick={() => {
+                        const correct = option === guide.drill.answer;
+                        setKeywordFeedback((previous) => ({
+                          ...previous,
+                          [guide.id]: { correct, option },
+                        }));
+
+                        onRecordAnswer({
+                          domain: "listening",
+                          itemId: `keyword-${guide.id}`,
+                          category: "Listening Keyword Coach",
+                          prompt: guide.drill.question,
+                          correct,
+                          userAnswer: option,
+                          correctAnswer: guide.drill.answer,
+                          explanationZh: guide.drill.explanation,
+                          reason: guide.explanation,
+                        });
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                {keywordFeedback[guide.id] && (
+                  <p className={keywordFeedback[guide.id].correct ? "feedback-inline ok" : "feedback-inline warn"}>
+                    {keywordFeedback[guide.id].correct
+                      ? `答對了：${guide.drill.explanation}`
+                      : `答錯了：${guide.drill.explanation}`}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
-      ) : null}
+      )}
+
+      {tab === "traps" && (
+        <div className="card-grid">
+          {trapGuides.map((trap) => (
+            <article key={trap.id} className="quest-card resource-card">
+              <p className="eyebrow">Trap Analyzer</p>
+              <h3>{trap.title}</h3>
+              <p>{trap.pattern}</p>
+              <div className="tip-box">
+                <strong>下次怎麼判斷</strong>
+                <p>{trap.fix}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
+
+export default ListeningCoach;

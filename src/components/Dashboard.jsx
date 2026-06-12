@@ -1,175 +1,192 @@
-import { dailyTasks, levelRoadmap } from "../data/tips";
-
-function getTaskProgress(taskType, todayProgress) {
-  const value = todayProgress[taskType] ?? 0;
-  const task = dailyTasks.find((item) => item.type === taskType);
-  if (!task) {
-    return { value: 0, goal: 0, ratio: 0 };
-  }
-
-  return {
-    value,
-    goal: task.goal,
-    ratio: Math.min(value / task.goal, 1),
-  };
-}
-
-export default function Dashboard({
-  branding,
-  todayProgress,
+function Dashboard({
+  appCopy,
+  dailyTasks,
+  taskProgress,
   stats,
   currentLevel,
-  targetLevel,
-  onGoalChange,
-  dueReviewCount,
-  suggestion,
-  phaseTwoRoadmap,
+  nextTarget,
+  weakInsight,
+  achievements,
+  onNavigate,
+  onCheckIn,
+  checkedInToday,
 }) {
-  const metricCards = [
-    { label: "已練單字", value: `${stats.learnedWords} 個` },
-    { label: "已掌握單字", value: `${stats.masteredWords} 個` },
-    { label: "收藏單字", value: `${stats.favoriteWords} 個` },
-    { label: "聽力正確率", value: `${stats.listeningAccuracy}%` },
-    { label: "閱讀正確率", value: `${stats.readingAccuracy}%` },
-    { label: "預估分數", value: `${stats.estimatedScore} 分` },
-  ];
-
   return (
-    <section className="page-stack">
+    <section className="page-shell">
       <div className="hero-card">
         <div className="hero-copy">
-          <span className="eyebrow">TOEIC Rescue System</span>
-          <h1>{branding.name}</h1>
-          <p className="hero-subtitle">{branding.subtitle}</p>
-          <div className="idea-row">
-            {branding.ideas.map((idea) => (
-              <span key={idea} className="idea-chip">
-                {idea}
-              </span>
-            ))}
+          <p className="eyebrow">{appCopy.subtitle}</p>
+          <h1>{appCopy.title}</h1>
+          <p className="hero-motto">{appCopy.motto}</p>
+          <p className="hero-description">{appCopy.description}</p>
+          <div className="hero-actions">
+            <button type="button" className="primary-button" onClick={() => onNavigate("quiz")}>
+              開始今日任務
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCheckIn}
+              disabled={checkedInToday}
+            >
+              {checkedInToday ? "今天已簽到" : "每日簽到"}
+            </button>
           </div>
-          <p className="hero-description">{branding.mission}</p>
         </div>
+
         <div className="hero-score">
-          <div className="score-bubble">
-            <span>目前定位</span>
-            <strong>{currentLevel.badge}</strong>
-            <small>預估 {stats.estimatedScore} 分</small>
+          <div className="score-ring">
+            <span>{stats.predictedScore}</span>
+            <small>預估分數</small>
           </div>
-          <div className="score-note">
-            <span>今日待複習</span>
-            <strong>{dueReviewCount} 項</strong>
+          <div className="score-meta">
+            <p>目前起點 255</p>
+            <p>下一目標 {nextTarget?.target ?? 350}</p>
+            <p>最終目標 730+</p>
           </div>
         </div>
       </div>
 
-      <div className="card-grid two-col">
-        <div className="content-card">
+      <div className="dashboard-grid">
+        <article className="quest-card">
           <div className="section-heading">
-            <h2>今日學習任務</h2>
-            <p>先把量控制住，重點是每天都有完成。</p>
+            <h2>今日任務</h2>
+            <p>每天一點點，穩定把基礎補起來。</p>
           </div>
-          <div className="task-list">
+          <div className="task-stack">
             {dailyTasks.map((task) => {
-              const progress = getTaskProgress(task.type, todayProgress);
+              const progress = taskProgress[task.key] ?? 0;
+              const ratio = Math.min(progress / task.goal, 1);
               return (
-                <div key={task.id} className="task-row">
-                  <div>
-                    <strong>{task.label}</strong>
-                    <p>
-                      已完成 {progress.value} / {progress.goal}
-                    </p>
+                <div key={task.key} className="task-item">
+                  <div className="card-row">
+                    <span>
+                      {task.icon} {task.label}
+                    </span>
+                    <strong>
+                      {progress} / {task.goal}
+                    </strong>
                   </div>
-                  <div className="progress-shell">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${progress.ratio * 100}%` }}
-                    />
+                  <div className="progress-bar">
+                    <span style={{ width: `${ratio * 100}%` }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </article>
 
-        <div className="content-card">
+        <article className="quest-card">
           <div className="section-heading">
-            <h2>下一階段目標</h2>
-            <p>先選你要衝到哪個里程碑，系統會用這個目標給你提醒。</p>
+            <h2>學習進度</h2>
+            <p>把今天的努力換成看得見的成長。</p>
           </div>
-          <div className="level-button-grid">
-            {levelRoadmap.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                className={`level-button ${targetLevel.id === level.id ? "is-active" : ""}`}
-                onClick={() => onGoalChange(level.id)}
-              >
-                <span>{level.title}</span>
-                <strong>{level.badge}</strong>
-              </button>
-            ))}
+          <div className="metric-grid">
+            <div className="metric-card">
+              <span>已學單字數</span>
+              <strong>{stats.learnedWords}</strong>
+            </div>
+            <div className="metric-card">
+              <span>收藏單字數</span>
+              <strong>{stats.favoriteCount}</strong>
+            </div>
+            <div className="metric-card">
+              <span>錯題數</span>
+              <strong>{stats.mistakeCount}</strong>
+            </div>
+            <div className="metric-card">
+              <span>待複習</span>
+              <strong>{stats.dueReviewCount}</strong>
+            </div>
+            <div className="metric-card">
+              <span>聽力正確率</span>
+              <strong>{stats.percentages.listening}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>閱讀正確率</span>
+              <strong>{stats.percentages.reading}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>文法正確率</span>
+              <strong>{stats.percentages.grammar}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>XP / 連續天數</span>
+              <strong>
+                {stats.xp} / {stats.streak}
+              </strong>
+            </div>
           </div>
-          <div className="goal-summary">
-            <p>
-              目前目標：<strong>{targetLevel.badge}</strong>
-            </p>
-            <p>
-              距離目標還差 <strong>{Math.max(targetLevel.score - stats.estimatedScore, 0)} 分</strong>
-            </p>
-            <p>建議下一步：{suggestion}</p>
-          </div>
-        </div>
+        </article>
       </div>
 
-      <div className="content-card">
+      <div className="dashboard-grid">
+        <article className="quest-card">
+          <div className="section-heading">
+            <h2>目標進度</h2>
+            <p>{currentLevel.title}</p>
+          </div>
+          <div className="goal-steps">
+            <div className="goal-line">
+              <span>目前預估</span>
+              <strong>{stats.predictedScore}</strong>
+            </div>
+            <div className="goal-line">
+              <span>下一目標</span>
+              <strong>{nextTarget?.target ?? 350}</strong>
+            </div>
+            <div className="goal-line">
+              <span>距離下一階段</span>
+              <strong>{Math.max((nextTarget?.target ?? 350) - stats.predictedScore, 0)} 分</strong>
+            </div>
+          </div>
+          <div className="tip-box">
+            <strong>目前建議</strong>
+            <p>{nextTarget?.advice ?? currentLevel.focus}</p>
+          </div>
+        </article>
+
+        <article className="quest-card">
+          <div className="section-heading">
+            <h2>AI 弱點分析</h2>
+            <p>用你的錯題和正確率找出最該補的地方。</p>
+          </div>
+          <div className="insight-block">
+            <strong>{weakInsight.title}</strong>
+            <p>{weakInsight.summary}</p>
+            <p className="muted">{weakInsight.nextStep}</p>
+          </div>
+          <div className="quick-links">
+            <button type="button" className="secondary-button" onClick={() => onNavigate("listening")}>
+              練聽力
+            </button>
+            <button type="button" className="secondary-button" onClick={() => onNavigate("reading")}>
+              練閱讀
+            </button>
+            <button type="button" className="secondary-button" onClick={() => onNavigate("mistakes")}>
+              看錯題
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <article className="quest-card">
         <div className="section-heading">
-          <h2>學習進度</h2>
-          <p>先看最重要的幾個數字，知道自己是不是在往前走。</p>
+          <h2>最新成就</h2>
+          <p>每一個小徽章都代表你真的有在往前走。</p>
         </div>
-        <div className="metric-grid">
-          {metricCards.map((card) => (
-            <div key={card.label} className="metric-card">
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
+        <div className="badge-grid">
+          {achievements.slice(0, 6).map((badge) => (
+            <div key={badge.id} className={`badge-card ${badge.unlocked ? "unlocked" : ""}`}>
+              <span>{badge.unlocked ? "已解鎖" : "未解鎖"}</span>
+              <strong>{badge.title}</strong>
+              <p>{badge.description}</p>
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="card-grid two-col">
-        <div className="content-card">
-          <div className="section-heading">
-            <h2>升級路線</h2>
-            <p>從 255 分開始，一步一步往綠色與藍色證書前進。</p>
-          </div>
-          <div className="roadmap-list">
-            {levelRoadmap.map((level) => (
-              <div
-                key={level.id}
-                className={`roadmap-item ${currentLevel.id >= level.id ? "is-cleared" : ""}`}
-              >
-                <strong>{level.badge}</strong>
-                <p>{level.focus}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="content-card accent-card">
-          <div className="section-heading">
-            <h2>第二階段預留</h2>
-            <p>第一版先專注救援基礎，但後面的進階功能我已經預留入口。</p>
-          </div>
-          <div className="chip-list">
-            {phaseTwoRoadmap.map((item) => (
-              <span key={item} className="soft-chip">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+      </article>
     </section>
   );
 }
+
+export default Dashboard;

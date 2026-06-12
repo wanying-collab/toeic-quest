@@ -1,133 +1,200 @@
-import { useMemo, useState } from "react";
-import { difficultyOptions, levelOptions } from "../data/vocabulary";
+import { useState } from "react";
 import VocabularyCard from "./VocabularyCard";
 
-function isDueReview(word) {
-  if (!word.nextReviewDate || word.mastered) {
-    return false;
-  }
-
-  return new Date(word.nextReviewDate) <= new Date();
-}
-
-export default function VocabularyPage({
-  vocabulary,
+function VocabularyPage({
+  words,
+  phrases,
+  patterns,
   categories,
+  levels,
+  favoriteIds,
+  wordProgress,
   onToggleFavorite,
   onSpeak,
 }) {
+  const [tab, setTab] = useState("words");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [difficulty, setDifficulty] = useState("all");
   const [level, setLevel] = useState("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [dueOnly, setDueOnly] = useState(false);
 
-  const filteredWords = useMemo(() => {
-    return vocabulary.filter((word) => {
-      const matchSearch =
-        !search ||
-        word.word.toLowerCase().includes(search.toLowerCase()) ||
-        word.meaning.includes(search);
-      const matchCategory = category === "all" || word.category === category;
-      const matchDifficulty = difficulty === "all" || word.difficulty === difficulty;
-      const matchLevel = level === "all" || word.level === level;
-      const matchFavorite = !favoritesOnly || word.isFavorite;
-      const matchDue = !dueOnly || isDueReview(word);
-      return (
-        matchSearch &&
-        matchCategory &&
-        matchDifficulty &&
-        matchLevel &&
-        matchFavorite &&
-        matchDue
-      );
-    });
-  }, [vocabulary, search, category, difficulty, level, favoritesOnly, dueOnly]);
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredWords = words.filter((word) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      word.word.toLowerCase().includes(normalizedSearch) ||
+      word.meaning.includes(normalizedSearch) ||
+      word.category.toLowerCase().includes(normalizedSearch);
+    const matchesCategory = category === "all" || word.category === category;
+    const matchesLevel = level === "all" || word.level === level;
+    const matchesFavorite = !favoritesOnly || favoriteIds.includes(word.id);
+
+    return matchesSearch && matchesCategory && matchesLevel && matchesFavorite;
+  });
+
+  const filteredPhrases = phrases.filter((phrase) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      phrase.phrase.toLowerCase().includes(normalizedSearch) ||
+      phrase.meaning.includes(normalizedSearch) ||
+      phrase.category.toLowerCase().includes(normalizedSearch);
+    const matchesCategory = category === "all" || phrase.category === category;
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredPatterns = patterns.filter((pattern) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      pattern.pattern.toLowerCase().includes(normalizedSearch) ||
+      pattern.example.toLowerCase().includes(normalizedSearch) ||
+      pattern.category.includes(normalizedSearch);
+    const matchesLevel = level === "all" || pattern.difficulty === level;
+    return matchesSearch && matchesLevel;
+  });
 
   return (
-    <section className="page-stack">
-      <div className="content-card">
-        <div className="section-heading">
-          <h2>基礎單字庫</h2>
-          <p>先收進最常用的商務與生活 TOEIC 基礎字，格式已預留未來擴充到 1000+。</p>
+    <section className="page-shell">
+      <div className="hero-card compact">
+        <div>
+          <p className="eyebrow">TOEIC Vocabulary Bank</p>
+          <h2>單字、片語、句型一起學</h2>
+          <p className="hero-description">
+            先用 300+ 高頻單字打底，再用片語與句型把閱讀和聽力接起來。
+          </p>
+        </div>
+        <div className="hero-badges">
+          <span className="stat-chip">{words.length} 個單字範例</span>
+          <span className="stat-chip">{phrases.length} 個片語範例</span>
+          <span className="stat-chip">{patterns.length} 個句型範例</span>
+        </div>
+      </div>
+
+      <div className="filter-bar quest-card">
+        <div className="tabs">
+          {[
+            { id: "words", label: "單字庫" },
+            { id: "phrases", label: "片語庫" },
+            { id: "patterns", label: "句型庫" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`tab-button ${tab === item.id ? "active" : ""}`}
+              onClick={() => setTab(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
         <div className="filter-grid">
-          <label className="field">
-            <span>搜尋</span>
+          <label>
+            搜尋
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="輸入英文或中文"
+              placeholder="輸入英文、中文、分類"
             />
           </label>
-          <label className="field">
-            <span>分類</span>
-            <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">全部分類</option>
-              {categories.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>難度</span>
-            <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
-              <option value="all">全部難度</option>
-              {difficultyOptions.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>證書層級</span>
-            <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="all">全部層級</option>
-              {levelOptions.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
 
-        <div className="toggle-row">
-          <label className="toggle-chip">
+          <label>
+            分類
+            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option value="all">全部</option>
+              {categories.map((item) => (
+                <option key={item.id} value={item.label}>
+                  {item.label} / {item.labelZh}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            難度
+            <select value={level} onChange={(event) => setLevel(event.target.value)}>
+              <option value="all">全部</option>
+              {levels.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="checkbox-line">
             <input
               type="checkbox"
               checked={favoritesOnly}
-              onChange={() => setFavoritesOnly((value) => !value)}
+              onChange={(event) => setFavoritesOnly(event.target.checked)}
             />
             只看收藏
           </label>
-          <label className="toggle-chip">
-            <input
-              type="checkbox"
-              checked={dueOnly}
-              onChange={() => setDueOnly((value) => !value)}
-            />
-            只看到期複習
-          </label>
-          <span className="result-note">目前顯示 {filteredWords.length} 個單字</span>
         </div>
       </div>
 
-      <div className="vocabulary-grid">
-        {filteredWords.map((word) => (
-          <VocabularyCard
-            key={word.id}
-            word={word}
-            onSpeak={onSpeak}
-            onToggleFavorite={onToggleFavorite}
-          />
-        ))}
-      </div>
+      {tab === "words" && (
+        <div className="card-grid">
+          {filteredWords.map((word) => (
+            <VocabularyCard
+              key={word.id}
+              word={word}
+              isFavorite={favoriteIds.includes(word.id)}
+              progress={wordProgress[word.id]}
+              onToggleFavorite={onToggleFavorite}
+              onSpeak={onSpeak}
+            />
+          ))}
+        </div>
+      )}
+
+      {tab === "phrases" && (
+        <div className="card-grid">
+          {filteredPhrases.map((phrase) => (
+            <article key={phrase.id} className="quest-card resource-card">
+              <div className="card-topline">
+                <div>
+                  <p className="eyebrow">{phrase.category}</p>
+                  <h3>{phrase.phrase}</h3>
+                </div>
+                <button type="button" className="icon-button" onClick={() => onSpeak(phrase.phrase)}>
+                  ▶
+                </button>
+              </div>
+              <p className="word-meaning">{phrase.meaning}</p>
+              <p>{phrase.tip}</p>
+              <p className="word-example">{phrase.example}</p>
+              <p className="word-example-zh">{phrase.exampleZh}</p>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {tab === "patterns" && (
+        <div className="card-grid">
+          {filteredPatterns.map((pattern) => (
+            <article key={pattern.id} className="quest-card resource-card">
+              <div className="card-topline">
+                <div>
+                  <p className="eyebrow">
+                    {pattern.category} / {pattern.difficulty.toUpperCase()}
+                  </p>
+                  <h3>{pattern.pattern}</h3>
+                </div>
+              </div>
+              <p>{pattern.explanation}</p>
+              <p className="word-example">{pattern.example}</p>
+              <p className="word-example-zh">{pattern.exampleZh}</p>
+              <div className="tip-box">
+                <strong>解題提醒</strong>
+                <p>{pattern.tip}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
+
+export default VocabularyPage;
