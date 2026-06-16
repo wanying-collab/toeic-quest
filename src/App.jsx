@@ -20,7 +20,12 @@ import {
   QUEST_LEVELS,
   READING_LADDER,
 } from "./data/tips";
-import { vocabularyBank, vocabularyCategories, vocabularyLevels } from "./data/vocabulary/index.js";
+import {
+  vocabularyBank,
+  vocabularyCategories,
+  vocabularyLevels,
+  vocabularyThemes,
+} from "./data/vocabulary/index.js";
 import { phraseBank } from "./data/phraseBank";
 import { sentencePatterns } from "./data/sentencePatterns";
 import { listeningLevels, listeningQuestions } from "./data/listeningQuestions";
@@ -109,14 +114,13 @@ function ensureDailyEngagement(state) {
 
 function updateReviewEntry(previous = {}, label, correct) {
   const today = getTodayKey();
+  const reviewSteps = [1, 3, 7, 14, 30];
   const nextCorrect = correct ? (previous.consecutiveCorrect ?? 0) + 1 : 0;
-  const consecutiveCorrect = Math.min(nextCorrect, 4);
-  const mastered = correct && consecutiveCorrect >= 4;
+  const consecutiveCorrect = Math.min(nextCorrect, 5);
+  const mastered = correct && consecutiveCorrect >= 5;
 
   const nextReviewAt = correct
-    ? mastered
-      ? addDays(today, 14)
-      : addDays(today, consecutiveCorrect === 1 ? 1 : consecutiveCorrect === 2 ? 3 : 7)
+    ? addDays(today, reviewSteps[Math.max(0, consecutiveCorrect - 1)] ?? 30)
     : addDays(today, 1);
 
   return {
@@ -193,24 +197,26 @@ function buildStats(state) {
 
   const latestMock = state.mockTests.at(-1) ?? null;
   const latestMockScore = latestMock?.score ?? 0;
-  const vocabularyFactor = clamp(learnedWords / 2000, 0, 1);
-  const masteryFactor = clamp(masteredWords / 1000, 0, 1);
+  const vocabularyFactor = clamp(learnedWords / 2200, 0, 1);
+  const masteryFactor = clamp(masteredWords / 1300, 0, 1);
+  const vocabularyMasteryRate = learnedWords ? masteredWords / learnedWords : 0;
   const practiceFactor = clamp(state.answerLog.length / 1500, 0, 1);
   const baseModel = Math.round(
     255 +
-      vocabularyFactor * 220 +
-      masteryFactor * 90 +
-      practiceFactor * 55 +
-      accuracy.listening * 170 +
-      accuracy.reading * 135 +
-      accuracy.grammar * 110 +
+      vocabularyFactor * 145 +
+      masteryFactor * 130 +
+      vocabularyMasteryRate * 95 +
+      practiceFactor * 45 +
+      accuracy.listening * 165 +
+      accuracy.reading * 130 +
+      accuracy.grammar * 105 +
       accuracy.speaking * 65 +
       Math.min(state.streak, 30) * 3,
   );
 
   const predictedScore = clamp(
     latestMockScore
-      ? Math.round(baseModel * 0.55 + latestMockScore * 0.45)
+      ? Math.round(baseModel * 0.52 + latestMockScore * 0.48)
       : baseModel,
     255,
     990,
@@ -235,6 +241,7 @@ function buildStats(state) {
     streak: state.streak,
     latestMockScore,
     latestMock,
+    vocabularyMasteryRate: Math.round(vocabularyMasteryRate * 100),
   };
 }
 
@@ -335,7 +342,7 @@ function buildReviewQueue(wordProgress) {
       key,
       ...value,
     }))
-    .sort((left, right) => left.nextReviewAt.localeCompare(right.nextReviewAt));
+    .sort((left, right) => (left.nextReviewAt ?? "9999-12-31").localeCompare(right.nextReviewAt ?? "9999-12-31"));
 }
 
 function App() {
@@ -375,8 +382,8 @@ function App() {
   const reviewQueue = buildReviewQueue(state.wordProgress);
   const checkedInToday = state.checkIns.includes(getTodayKey());
   const adaptiveProfile = useMemo(
-    () => buildAdaptiveProfile(state.answerLog, state.mistakes, state.reviewMap),
-    [state.answerLog, state.mistakes, state.reviewMap],
+    () => buildAdaptiveProfile(state.answerLog, state.mistakes, state.reviewMap, state.favorites, state.wordProgress),
+    [state.answerLog, state.mistakes, state.reviewMap, state.favorites, state.wordProgress],
   );
 
   const navigate = (nextPage) => {
@@ -544,6 +551,7 @@ function App() {
         patterns={sentencePatterns}
         categories={vocabularyCategories}
         levels={vocabularyLevels}
+        themes={vocabularyThemes}
         favoriteIds={state.favorites}
         wordProgress={state.wordProgress}
         onToggleFavorite={toggleFavorite}
@@ -555,6 +563,8 @@ function App() {
       <QuizPage
         words={vocabularyBank}
         levels={vocabularyLevels}
+        favoriteIds={state.favorites}
+        wordProgress={state.wordProgress}
         onSpeak={speakText}
         onRecordAnswer={recordAnswer}
         adaptiveProfile={adaptiveProfile}

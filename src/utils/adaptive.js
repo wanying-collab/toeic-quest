@@ -9,14 +9,23 @@ function toCountMap(items, getKey) {
   }, {});
 }
 
-export function buildAdaptiveProfile(answerLog = [], mistakes = [], reviewMap = {}) {
-  const recent50 = answerLog.slice(-50);
-  const recentWrong = answerLog.filter((item) => !item.correct).slice(-30);
-  const recentCorrect = answerLog.filter((item) => item.correct).slice(-30);
+export function buildAdaptiveProfile(
+  answerLog = [],
+  mistakes = [],
+  reviewMap = {},
+  favoriteIds = [],
+  wordProgress = {},
+) {
+  const recent100 = answerLog.slice(-100);
+  const recentWrong = answerLog.filter((item) => !item.correct).slice(-40);
+  const recentCorrect = answerLog.filter((item) => item.correct).slice(-40);
+  const dueReviewWordIds = Object.entries(wordProgress)
+    .filter(([, value]) => value.nextReviewAt && value.nextReviewAt <= new Date().toISOString().slice(0, 10))
+    .map(([wordId]) => wordId);
 
   return {
-    recentItemCounts: toCountMap(recent50, (item) => `${item.domain}:${item.itemId}`),
-    recentWordCounts: toCountMap(recent50, (item) => item.relatedWordId),
+    recentItemCounts: toCountMap(recent100, (item) => `${item.domain}:${item.itemId}`),
+    recentWordCounts: toCountMap(recent100, (item) => item.relatedWordId),
     recentWrongWordCounts: toCountMap(recentWrong, (item) => item.relatedWordId),
     recentCorrectWordCounts: toCountMap(recentCorrect, (item) => item.relatedWordId),
     recentWrongCategoryCounts: toCountMap(recentWrong, (item) => item.category),
@@ -25,6 +34,8 @@ export function buildAdaptiveProfile(answerLog = [], mistakes = [], reviewMap = 
       return map;
     }, {}),
     reviewMap,
+    favoriteWordSet: new Set(favoriteIds),
+    dueReviewWordSet: new Set(dueReviewWordIds),
   };
 }
 
@@ -59,6 +70,7 @@ export function pickAdaptiveItem(items, profile, config = {}) {
     getCategory = (item) => item.category,
     getReviewKey = (item) => `${domain}:${getItemId(item)}`,
     getIsMastered = (item) => Boolean(item.mastered),
+    getIsFavorite = () => false,
   } = config;
 
   return weightedPick(items, (item) => {
@@ -76,39 +88,49 @@ export function pickAdaptiveItem(items, profile, config = {}) {
     const recentCorrectWordCount = wordId ? profile.recentCorrectWordCounts?.[wordId] ?? 0 : 0;
     const recentWrongCategoryCount = category ? profile.recentWrongCategoryCounts?.[category] ?? 0 : 0;
     const mistakeCount = profile.mistakeCounts?.[itemId] ?? 0;
+    const favoriteBoost = wordId && profile.favoriteWordSet?.has(wordId);
+    const dueReviewBoost = wordId && profile.dueReviewWordSet?.has(wordId);
 
     if (recentItemCount > 0) {
-      weight *= 0.04;
+      weight *= Math.max(0.06, 0.24 - recentItemCount * 0.03);
     }
 
     if (recentWordCount > 0) {
-      weight *= 0.15;
+      weight *= Math.max(0.1, 0.3 - recentWordCount * 0.025);
     }
 
     if (recentWrongWordCount > 0) {
-      weight *= 2.2 + recentWrongWordCount * 0.55;
+      weight *= 2.4 + recentWrongWordCount * 0.6;
     }
 
     if (recentCorrectWordCount > 0) {
-      weight *= 0.45;
+      weight *= Math.max(0.3, 0.6 - recentCorrectWordCount * 0.05);
     }
 
     if (recentWrongCategoryCount > 0) {
-      weight *= 1 + recentWrongCategoryCount * 0.2;
+      weight *= 1 + recentWrongCategoryCount * 0.18;
     }
 
     if (mistakeCount > 0) {
-      weight *= 1 + Math.min(mistakeCount, 6) * 0.25;
+      weight *= 1 + Math.min(mistakeCount, 8) * 0.28;
     }
 
-    if (reviewEntry && reviewEntry.mastered) {
-      weight *= 0.35;
+    if (favoriteBoost) {
+      weight *= 1.35;
+    }
+
+    if (dueReviewBoost) {
+      weight *= 1.55;
+    }
+
+    if (reviewEntry?.mastered || getIsMastered(item)) {
+      weight *= 0.25;
     } else if (reviewEntry?.nextReviewAt) {
       weight *= 1.15;
     }
 
-    if (getIsMastered(item)) {
-      weight *= 0.35;
+    if (getIsFavorite(item)) {
+      weight *= 1.2;
     }
 
     return weight;

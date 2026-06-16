@@ -394,6 +394,13 @@ pre {
   gap: 14px;
 }
 
+.flow-strip,
+.chip-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .saved-button {
   background: #fff2cf;
   color: #9c6a00;
@@ -488,6 +495,64 @@ pre {
 .vocab-card h3,
 .resource-card h3 {
   margin: 0;
+}
+
+.vocab-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vocab-detail-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.detail-item {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(248, 253, 255, 0.92);
+  border: 1px solid rgba(17, 58, 92, 0.08);
+}
+
+.detail-item span {
+  display: block;
+  color: #61849b;
+  font-size: 0.82rem;
+}
+
+.detail-item strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--navy);
+}
+
+.vocab-block {
+  display: grid;
+  gap: 8px;
+}
+
+.chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eaf8f5;
+  color: #175262;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.chip.soft {
+  background: #eef6ff;
+}
+
+.chip.family {
+  background: #fff3da;
+}
+
+.compact-list {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .icon-button {
@@ -605,6 +670,11 @@ pre {
 .spelling-form {
   display: grid;
   gap: 12px;
+}
+
+.study-card {
+  display: grid;
+  gap: 16px;
 }
 
 .feedback-panel {
