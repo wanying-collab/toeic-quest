@@ -1,9 +1,9 @@
 export const APP_COPY = {
-  title: "TOEIC Quest AI 2.0",
-  subtitle: "From 255 to Blue Badge",
-  motto: "Every Word Counts. Every Point Matters.",
+  title: "TOEIC Quest AI",
+  subtitle: "Personalized TOEIC Learning System",
+  motto: "AI-Powered English Learning Platform",
   description:
-    "A TOEIC learning platform that blends vocabulary, pronunciation, shadowing, listening, grammar, reading, speaking, and adaptive review into one daily training loop.",
+    "結合 AI 分析、發音訓練、智慧複習與模擬測驗的個人化英語學習平台。",
 };
 
 export const DAILY_TASKS = [
@@ -17,42 +17,47 @@ export const QUEST_LEVELS = [
   {
     id: 1,
     label: "Level 1",
-    title: "255 -> 350 Foundation Rescue",
+    title: "Beginner Foundation",
+    publicLabel: "Beginner",
     minScore: 255,
     maxScore: 349,
-    focus: "Build survival vocabulary, word listening, short sentence reading, and basic speaking confidence.",
+    focus: "Build essential vocabulary, word listening, short reading, and basic speaking confidence.",
   },
   {
     id: 2,
     label: "Level 2",
-    title: "350 -> 470 Green Prep",
+    title: "Core Builder",
+    publicLabel: "Developing",
     minScore: 350,
     maxScore: 469,
-    focus: "Push keyword listening, grammar basics, and short business reading into daily habits.",
+    focus: "Strengthen keyword listening, grammar basics, and short business reading habits.",
   },
   {
     id: 3,
     label: "Level 3",
-    title: "470 -> 550 Green Badge",
+    title: "Green Certificate Track",
+    publicLabel: "Intermediate",
     minScore: 470,
     maxScore: 549,
-    focus: "Stabilize Part 2, Part 5, and short passage reading while expanding business vocabulary.",
+    focus: "Stabilize core TOEIC sections while expanding business vocabulary and reading accuracy.",
   },
   {
     id: 4,
     label: "Level 4",
-    title: "550 -> 730 Blue Push",
+    title: "Blue Certificate Track",
+    publicLabel: "Upper Intermediate",
     minScore: 550,
     maxScore: 729,
-    focus: "Strengthen Part 3, Part 4, Part 7, and longer speaking or shadowing tasks.",
+    focus: "Strengthen longer listening, reading strategy, and speaking or shadowing performance.",
   },
   {
     id: 5,
     label: "Level 5",
-    title: "730+ Blue Badge",
+    title: "Advanced Performance",
+    publicLabel: "Advanced",
     minScore: 730,
     maxScore: 990,
-    focus: "Keep accuracy high with mock exams, advanced vocabulary, and faster processing under time pressure.",
+    focus: "Maintain high accuracy with mock exams, advanced vocabulary, and faster processing under pressure.",
   },
 ];
 
@@ -286,4 +291,3 @@ export const READING_LADDER = [
   { id: "passage", label: "Passage", goal: "先看題目，再回短文定位重點資訊。" },
   { id: "part7", label: "Part 7", goal: "練 purpose、detail、next action 和 NOT 題。" },
 ];
-

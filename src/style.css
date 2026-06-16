@@ -271,6 +271,25 @@ pre {
   color: #486b86;
 }
 
+.database-highlight {
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(24, 185, 167, 0.14), rgba(74, 157, 255, 0.14));
+  border: 1px solid rgba(17, 58, 92, 0.08);
+}
+
+.database-highlight strong {
+  display: block;
+  font-size: 2rem;
+  color: var(--navy);
+}
+
+.database-highlight p {
+  margin: 8px 0 0;
+  color: #476b86;
+  font-weight: 700;
+}
+
 .quest-card {
   padding: 22px;
 }

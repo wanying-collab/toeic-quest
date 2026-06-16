@@ -11,7 +11,18 @@ function Dashboard({
   onCheckIn,
   checkedInToday,
   levels,
+  vocabularyTotal,
 }) {
+  const learningProgress = Math.round(
+    (stats.vocabularyMasteryRate + stats.percentages.listening + stats.percentages.reading + stats.percentages.grammar) /
+      4,
+  );
+
+  const recommendation =
+    stats.percentages.listening <= stats.percentages.reading
+      ? "目前建議：優先加強 Listening 與 Vocabulary。"
+      : "目前建議：優先加強 Reading 與 Grammar。";
+
   return (
     <section className="page-shell">
       <div className="hero-card">
@@ -37,13 +48,13 @@ function Dashboard({
 
         <div className="hero-score">
           <div className="score-ring">
-            <span>{stats.predictedScore}</span>
-            <small>Predicted TOEIC</small>
+            <span>AI</span>
+            <small>Predicted Score</small>
           </div>
           <div className="score-meta">
-            <p>Current: {stats.predictedScore}</p>
-            <p>Next target: {nextTarget?.target ?? 350}</p>
-            <p>Gap: {Math.max((nextTarget?.target ?? 350) - stats.predictedScore, 0)} pts</p>
+            <p>Current Level: {currentLevel.publicLabel ?? currentLevel.title}</p>
+            <p>Next Goal: {nextTarget?.goalLabel ?? "Green Certificate"}</p>
+            <p>Learning Progress: {learningProgress}%</p>
           </div>
         </div>
       </div>
@@ -51,8 +62,8 @@ function Dashboard({
       <div className="dashboard-grid">
         <article className="quest-card">
           <div className="section-heading">
-            <h2>Today&apos;s Mission</h2>
-            <p>Keep the streak alive with a balanced study loop.</p>
+            <h2>Today&apos;s Mission 今日任務</h2>
+            <p>Keep the study loop balanced with vocabulary, listening, reading, and speaking.</p>
           </div>
           <div className="task-stack">
             {dailyTasks.map((task) => {
@@ -79,8 +90,8 @@ function Dashboard({
 
         <article className="quest-card">
           <div className="section-heading">
-            <h2>Daily Momentum</h2>
-            <p>Product-style progress, not just homework counters.</p>
+            <h2>Learning Progress 學習進度</h2>
+            <p>Showcase learner momentum with AI-assisted study data.</p>
           </div>
           <div className="metric-grid">
             <div className="metric-card">
@@ -96,8 +107,8 @@ function Dashboard({
               <strong>{stats.learnedWords}</strong>
             </div>
             <div className="metric-card">
-              <span>Speaking</span>
-              <strong>{stats.percentages.speaking}%</strong>
+              <span>Vocabulary Mastery</span>
+              <strong>{stats.vocabularyMasteryRate}%</strong>
             </div>
             <div className="metric-card">
               <span>Listening</span>
@@ -112,8 +123,8 @@ function Dashboard({
               <strong>{stats.percentages.grammar}%</strong>
             </div>
             <div className="metric-card">
-              <span>Mock Score</span>
-              <strong>{stats.latestMockScore || "--"}</strong>
+              <span>Predicted Score</span>
+              <strong>AI-calculated</strong>
             </div>
           </div>
         </article>
@@ -122,7 +133,62 @@ function Dashboard({
       <div className="dashboard-grid">
         <article className="quest-card">
           <div className="section-heading">
-            <h2>Learning Path</h2>
+            <h2>AI Learning Analysis AI 智慧學習分析</h2>
+            <p>Highlight the platform&apos;s personalized feedback and recommendation engine.</p>
+          </div>
+          <div className="metric-grid">
+            <div className="metric-card">
+              <span>Vocabulary Mastery</span>
+              <strong>{stats.vocabularyMasteryRate}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>Listening Progress</span>
+              <strong>{stats.percentages.listening}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>Reading Progress</span>
+              <strong>{stats.percentages.reading}%</strong>
+            </div>
+            <div className="metric-card">
+              <span>Grammar Progress</span>
+              <strong>{stats.percentages.grammar}%</strong>
+            </div>
+          </div>
+          <div className="tip-box">
+            <strong>Weakness Recommendation</strong>
+            <p>{recommendation}</p>
+            <p className="muted">{weakInsight.nextStep}</p>
+          </div>
+        </article>
+
+        <article className="quest-card">
+          <div className="section-heading">
+            <h2>Vocabulary Database 單字資料庫</h2>
+            <p>Make the scale of the platform immediately visible to competition judges.</p>
+          </div>
+          <div className="database-highlight">
+            <strong>{vocabularyTotal.toLocaleString()}+ Words</strong>
+            <p>TOEIC Vocabulary Database</p>
+          </div>
+          <p>
+            包含商務、辦公、財務、採購、製造、物流、旅遊、客服與科技等多益常見主題，
+            支援主題式學習、發音播放、Word Family 與智慧複習。
+          </p>
+          <div className="quick-links">
+            <button type="button" className="secondary-button" onClick={() => onNavigate("vocabulary")}>
+              Open Vocabulary
+            </button>
+            <button type="button" className="secondary-button" onClick={() => onNavigate("quiz")}>
+              Start Quiz
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div className="dashboard-grid">
+        <article className="quest-card">
+          <div className="section-heading">
+            <h2>Learning Path 學習路徑</h2>
             <p>{currentLevel.title}</p>
           </div>
           <div className="level-stack">
@@ -135,9 +201,7 @@ function Dashboard({
                     <strong>
                       {level.label} {level.title}
                     </strong>
-                    <p>
-                      {level.minScore} - {level.maxScore}
-                    </p>
+                    <p>{level.publicLabel ?? level.title}</p>
                   </div>
                   <p>{level.focus}</p>
                 </div>
@@ -148,8 +212,8 @@ function Dashboard({
 
         <article className="quest-card">
           <div className="section-heading">
-            <h2>AI Weakness Insight</h2>
-            <p>Use mistakes to drive the next best study move.</p>
+            <h2>AI Recommendation AI 推薦行動</h2>
+            <p>Use recent study behavior and mistakes to drive the next best learning move.</p>
           </div>
           <div className="insight-block">
             <strong>{weakInsight.title}</strong>
@@ -172,8 +236,8 @@ function Dashboard({
 
       <article className="quest-card">
         <div className="section-heading">
-          <h2>Achievements</h2>
-          <p>Keep motivation high with visible progress wins.</p>
+          <h2>Achievements 成就系統</h2>
+          <p>Keep motivation visible with milestone-based learning progress.</p>
         </div>
         <div className="badge-grid">
           {achievements.slice(0, 6).map((badge) => (
@@ -190,4 +254,3 @@ function Dashboard({
 }
 
 export default Dashboard;
-

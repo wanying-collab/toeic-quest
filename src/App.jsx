@@ -315,23 +315,27 @@ function getNextTarget(predictedScore) {
   if (predictedScore < 350) {
     return {
       target: 350,
+      goalLabel: "Green Certificate",
       advice: "Stay with survival vocabulary, word listening, and short speaking shadowing until the basics feel automatic.",
     };
   }
   if (predictedScore < 470) {
     return {
       target: 470,
+      goalLabel: "Green Certificate",
       advice: "Push question keywords, grammar basics, and short business passages every day.",
     };
   }
   if (predictedScore < 550) {
     return {
       target: 550,
+      goalLabel: "Blue Certificate",
       advice: "Stabilize Part 2, Part 5, and logistics or manufacturing vocabulary.",
     };
   }
   return {
     target: 730,
+    goalLabel: "Blue Certificate",
     advice: "Use more mixed listening, longer reading, speaking practice, and mock scores to move toward the blue badge.",
   };
 }
@@ -541,6 +545,7 @@ function App() {
         onCheckIn={checkInToday}
         checkedInToday={checkedInToday}
         levels={QUEST_LEVELS}
+        vocabularyTotal={vocabularyBank.length}
       />
     );
   } else if (page === "vocabulary") {
@@ -653,7 +658,7 @@ function App() {
         <div className="topbar-stats">
           <span>XP {stats.xp}</span>
           <span>Streak {stats.streak}</span>
-          <span>TOEIC {stats.predictedScore}</span>
+          <span>Words {vocabularyBank.length.toLocaleString()}+</span>
         </div>
       </header>
 
@@ -675,8 +680,8 @@ function App() {
       <footer className="app-footer">
         <p>{APP_COPY.motto}</p>
         <p>
-          TOEIC Quest AI 2.0 now connects vocabulary, pronunciation, shadowing, listening, grammar,
-          reading, speaking, and adaptive review into one study loop.
+          TOEIC Quest AI brings together vocabulary, pronunciation, listening, grammar, reading,
+          speaking, adaptive review, and mock testing into one AI-powered TOEIC learning platform.
         </p>
       </footer>
     </div>
