@@ -575,6 +575,11 @@ pre {
   font-weight: 700;
 }
 
+.option-button.active {
+  background: linear-gradient(135deg, rgba(24, 185, 167, 0.16), rgba(74, 157, 255, 0.14));
+  border-color: rgba(24, 185, 167, 0.35);
+}
+
 .spelling-form {
   display: grid;
   gap: 12px;
@@ -652,6 +657,10 @@ pre {
 .app-footer {
   margin-top: 24px;
   text-align: center;
+}
+
+audio {
+  width: 100%;
 }
 
 @media (max-width: 960px) {

@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Dashboard from "./components/Dashboard";
 import VocabularyPage from "./components/VocabularyPage";
 import QuizPage from "./components/QuizPage";
 import ListeningCoach from "./components/ListeningCoach";
 import GrammarCoach from "./components/GrammarCoach";
 import ReadingCoach from "./components/ReadingCoach";
+import SpeakingCoach from "./components/SpeakingCoach";
+import MockExam from "./components/MockExam";
 import MistakeBook from "./components/MistakeBook";
 import ProgressPanel from "./components/ProgressPanel";
 import StrategyCenter from "./components/StrategyCenter";
@@ -18,30 +20,29 @@ import {
   QUEST_LEVELS,
   READING_LADDER,
 } from "./data/tips";
-import {
-  vocabularyBank,
-  vocabularyCategories,
-  vocabularyLevels,
-} from "./data/vocabulary/index.js";
+import { vocabularyBank, vocabularyCategories, vocabularyLevels } from "./data/vocabulary/index.js";
 import { phraseBank } from "./data/phraseBank";
 import { sentencePatterns } from "./data/sentencePatterns";
 import { listeningLevels, listeningQuestions } from "./data/listeningQuestions";
 import { grammarQuestions, grammarTopics } from "./data/grammarQuestions";
 import { readingQuestions } from "./data/readingQuestions";
 import { strategySections } from "./data/strategyCenter";
+import { buildAdaptiveProfile } from "./utils/adaptive";
 
-const STORAGE_KEY = "toeic-quest-state-v3";
+const STORAGE_KEY = "toeic-quest-state-v4";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
-  { id: "vocabulary", label: "單字庫" },
-  { id: "quiz", label: "單字測驗" },
-  { id: "listening", label: "聽力訓練" },
-  { id: "grammar", label: "文法教學" },
-  { id: "reading", label: "閱讀練習" },
-  { id: "strategy", label: "技巧中心" },
-  { id: "mistakes", label: "錯題本" },
-  { id: "progress", label: "學習進度" },
+  { id: "vocabulary", label: "Vocabulary" },
+  { id: "quiz", label: "Quiz" },
+  { id: "listening", label: "Listening" },
+  { id: "grammar", label: "Grammar" },
+  { id: "reading", label: "Reading" },
+  { id: "speaking", label: "Speaking" },
+  { id: "mock", label: "Mini Mock" },
+  { id: "strategy", label: "Strategy" },
+  { id: "mistakes", label: "Mistakes" },
+  { id: "progress", label: "Progress" },
 ];
 
 const INITIAL_STATE = {
@@ -54,6 +55,7 @@ const INITIAL_STATE = {
   mistakes: [],
   reviewMap: {},
   wordProgress: {},
+  mockTests: [],
 };
 
 function getTodayKey() {
@@ -139,6 +141,7 @@ function buildStats(state) {
     listening: 0,
     grammar: 0,
     reading: 0,
+    speaking: 0,
   };
 
   const correctCounts = {
@@ -146,14 +149,15 @@ function buildStats(state) {
     listening: 0,
     grammar: 0,
     reading: 0,
+    speaking: 0,
   };
 
   const today = getTodayKey();
   const taskProgress = {
     vocabulary: 0,
     listening: 0,
-    grammar: 0,
     reading: 0,
+    speaking: 0,
   };
 
   state.answerLog.forEach((item) => {
@@ -162,9 +166,10 @@ function buildStats(state) {
       if (item.correct) {
         correctCounts[item.domain] += 1;
       }
-      if (item.date === today) {
-        taskProgress[item.domain] += 1;
-      }
+    }
+
+    if (item.date === today && taskProgress[item.domain] !== undefined) {
+      taskProgress[item.domain] += 1;
     }
   });
 
@@ -173,6 +178,7 @@ function buildStats(state) {
     listening: attempts.listening ? correctCounts.listening / attempts.listening : 0,
     grammar: attempts.grammar ? correctCounts.grammar / attempts.grammar : 0,
     reading: attempts.reading ? correctCounts.reading / attempts.reading : 0,
+    speaking: attempts.speaking ? correctCounts.speaking / attempts.speaking : 0,
   };
 
   const percentages = Object.fromEntries(
@@ -185,18 +191,27 @@ function buildStats(state) {
     (item) => !item.mastered && item.nextReviewAt && item.nextReviewAt <= today,
   ).length;
 
-  const predictedScore = clamp(
-    Math.round(
-      255 +
-        learnedWords * 0.45 +
-        accuracy.listening * 155 +
-        accuracy.reading * 140 +
-        accuracy.grammar * 120 +
-        Math.min(state.streak, 14) * 4,
-    ),
-    255,
-    900,
+  const latestMockScore = state.mockTests.at(-1)?.score ?? 0;
+  const vocabularyFactor = clamp(learnedWords / 2000, 0, 1);
+  const baseModel = Math.round(
+    255 +
+      vocabularyFactor * 220 +
+      accuracy.listening * 170 +
+      accuracy.reading * 135 +
+      accuracy.grammar * 110 +
+      accuracy.speaking * 65 +
+      Math.min(state.streak, 30) * 3,
   );
+
+  const predictedScore = clamp(
+    latestMockScore
+      ? Math.round(baseModel * 0.55 + latestMockScore * 0.45)
+      : baseModel,
+    255,
+    990,
+  );
+
+  const rangePadding = latestMockScore ? 25 : 45;
 
   return {
     attempts,
@@ -209,16 +224,17 @@ function buildStats(state) {
     mistakeCount: state.mistakes.length,
     dueReviewCount,
     predictedScore,
-    predictedRange: [Math.max(255, predictedScore - 35), Math.min(990, predictedScore + 40)],
+    predictedRange: [Math.max(255, predictedScore - rangePadding), Math.min(990, predictedScore + rangePadding)],
     totalAnswers: state.answerLog.length,
     xp: state.xp,
     streak: state.streak,
+    latestMockScore,
   };
 }
 
 function buildWeakCategories(mistakes) {
   const grouped = mistakes.reduce((accumulator, item) => {
-    const category = item.category || "未分類";
+    const category = item.category || "General";
     accumulator[category] = (accumulator[category] ?? 0) + item.wrongCount;
     return accumulator;
   }, {});
@@ -227,7 +243,7 @@ function buildWeakCategories(mistakes) {
     .map(([category, wrongCount]) => ({
       category,
       wrongCount,
-      advice: `${category} 最近錯得比較多，建議先回到這個主題做 5 到 10 題集中練習。`,
+      advice: `Focus on ${category} vocabulary, listening, and reading for the next study block.`,
     }))
     .sort((left, right) => right.wrongCount - left.wrongCount)
     .slice(0, 4);
@@ -235,9 +251,10 @@ function buildWeakCategories(mistakes) {
 
 function buildWeakInsight(stats, weakCategories) {
   const skillRanking = [
-    { key: "listening", label: "聽力", value: stats.accuracy.listening },
-    { key: "reading", label: "閱讀", value: stats.accuracy.reading },
-    { key: "grammar", label: "文法", value: stats.accuracy.grammar },
+    { key: "listening", label: "Listening", value: stats.accuracy.listening },
+    { key: "reading", label: "Reading", value: stats.accuracy.reading },
+    { key: "grammar", label: "Grammar", value: stats.accuracy.grammar },
+    { key: "speaking", label: "Speaking", value: stats.accuracy.speaking },
   ].sort((left, right) => left.value - right.value);
 
   const weakestSkill = skillRanking[0];
@@ -245,24 +262,24 @@ function buildWeakInsight(stats, weakCategories) {
 
   if (!weakestSkill || stats.totalAnswers === 0) {
     return {
-      title: "先建立第一波資料",
-      summary: "目前答題資料還不多，先做幾輪單字、聽力和文法，系統就會開始抓出弱點。",
-      nextStep: "建議先完成今天的單字 20 個與聽力 10 題。",
+      title: "Start your first study loop",
+      summary: "Build a little history first. Once you answer more questions, TOEIC Quest can spot patterns in your weak areas.",
+      nextStep: "Finish one block each of vocabulary, listening, reading, and speaking today.",
     };
   }
 
   if (topCategory) {
     return {
-      title: `${weakestSkill.label}需要優先補強`,
-      summary: `最近整體最弱的是${weakestSkill.label}，而且 ${topCategory.category} 類題目錯得最多。`,
-      nextStep: `下一步先做 ${topCategory.category} 類題目，再回來測一次 ${weakestSkill.label}。`,
+      title: `${weakestSkill.label} needs the most support`,
+      summary: `Your recent mistakes suggest ${topCategory.category} is a weak area, especially when combined with ${weakestSkill.label.toLowerCase()} tasks.`,
+      nextStep: `Do a focused ${topCategory.category} practice set and then revisit one ${weakestSkill.label.toLowerCase()} block.`,
     };
   }
 
   return {
-    title: `${weakestSkill.label}需要優先補強`,
-    summary: `目前 ${weakestSkill.label} 的正確率最低，先從這一項補起來最划算。`,
-    nextStep: `先安排 10 題${weakestSkill.label}練習，練完再看錯題原因。`,
+    title: `${weakestSkill.label} is currently your lowest skill`,
+    summary: `Your study history shows ${weakestSkill.label.toLowerCase()} is lagging behind the other skill areas.`,
+    nextStep: `Do 10 more ${weakestSkill.label.toLowerCase()} questions before moving back to mixed practice.`,
   };
 }
 
@@ -285,24 +302,24 @@ function getNextTarget(predictedScore) {
   if (predictedScore < 350) {
     return {
       target: 350,
-      advice: "先把單字聽熟，練會議、訂單、時間地點這些最常見短句。",
+      advice: "Stay with survival vocabulary, word listening, and short speaking shadowing until the basics feel automatic.",
     };
   }
   if (predictedScore < 470) {
     return {
       target: 470,
-      advice: "把關鍵疑問詞和 Part 2 問答題穩住，閱讀從短句升到短文。",
+      advice: "Push question keywords, grammar basics, and short business passages every day.",
     };
   }
   if (predictedScore < 550) {
     return {
       target: 550,
-      advice: "集中補綠色證書常見字與文法，開始練 Part 5 到 Part 7 定位。",
+      advice: "Stabilize Part 2, Part 5, and logistics or manufacturing vocabulary.",
     };
   }
   return {
     target: 730,
-    advice: "開始用長對話、通知、email 和 Part 7 題型把速度與穩定度拉上去。",
+    advice: "Use more mixed listening, longer reading, speaking practice, and mock scores to move toward the blue badge.",
   };
 }
 
@@ -336,8 +353,7 @@ function App() {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const next = getInitialPage();
-      setPage(next);
+      setPage(getInitialPage());
     };
 
     window.addEventListener("hashchange", handleHashChange);
@@ -352,6 +368,10 @@ function App() {
   const nextTarget = getNextTarget(stats.predictedScore);
   const reviewQueue = buildReviewQueue(state.wordProgress);
   const checkedInToday = state.checkIns.includes(getTodayKey());
+  const adaptiveProfile = useMemo(
+    () => buildAdaptiveProfile(state.answerLog, state.mistakes, state.reviewMap),
+    [state.answerLog, state.mistakes, state.reviewMap],
+  );
 
   const navigate = (nextPage) => {
     window.location.hash = nextPage;
@@ -381,6 +401,13 @@ function App() {
 
   const checkInToday = () => {
     setState((current) => ensureDailyEngagement(current));
+  };
+
+  const saveMockTest = (score) => {
+    setState((current) => ({
+      ...ensureDailyEngagement(current),
+      mockTests: [...current.mockTests, { score, date: new Date().toISOString() }].slice(-20),
+    }));
   };
 
   const recordAnswer = ({
@@ -462,13 +489,14 @@ function App() {
         ...engaged,
         xp: engaged.xp + xpGain,
         answerLog: [
-          ...engaged.answerLog.slice(-799),
+          ...engaged.answerLog.slice(-4999),
           {
             domain,
             itemId,
             category,
             correct,
             date: today,
+            relatedWordId,
           },
         ],
         mistakes: nextMistakes,
@@ -476,11 +504,6 @@ function App() {
         wordProgress: nextWordProgress,
       };
     });
-  };
-
-  const sharedPageProps = {
-    onSpeak: speakText,
-    onRecordAnswer: recordAnswer,
   };
 
   let pageContent = null;
@@ -499,6 +522,7 @@ function App() {
         onNavigate={navigate}
         onCheckIn={checkInToday}
         checkedInToday={checkedInToday}
+        levels={QUEST_LEVELS}
       />
     );
   } else if (page === "vocabulary") {
@@ -516,7 +540,15 @@ function App() {
       />
     );
   } else if (page === "quiz") {
-    pageContent = <QuizPage words={vocabularyBank} levels={vocabularyLevels} {...sharedPageProps} />;
+    pageContent = (
+      <QuizPage
+        words={vocabularyBank}
+        levels={vocabularyLevels}
+        onSpeak={speakText}
+        onRecordAnswer={recordAnswer}
+        adaptiveProfile={adaptiveProfile}
+      />
+    );
   } else if (page === "listening") {
     pageContent = (
       <ListeningCoach
@@ -524,7 +556,9 @@ function App() {
         questions={listeningQuestions}
         keywordGuides={KEYWORD_GUIDES}
         trapGuides={LISTENING_TRAPS}
-        {...sharedPageProps}
+        onSpeak={speakText}
+        onRecordAnswer={recordAnswer}
+        adaptiveProfile={adaptiveProfile}
       />
     );
   } else if (page === "grammar") {
@@ -534,11 +568,37 @@ function App() {
         topics={grammarTopics}
         guides={GRAMMAR_GUIDES}
         onRecordAnswer={recordAnswer}
+        adaptiveProfile={adaptiveProfile}
       />
     );
   } else if (page === "reading") {
     pageContent = (
-      <ReadingCoach items={readingQuestions} ladder={READING_LADDER} onRecordAnswer={recordAnswer} />
+      <ReadingCoach
+        items={readingQuestions}
+        ladder={READING_LADDER}
+        onRecordAnswer={recordAnswer}
+        onSpeak={speakText}
+        adaptiveProfile={adaptiveProfile}
+      />
+    );
+  } else if (page === "speaking") {
+    pageContent = (
+      <SpeakingCoach
+        words={vocabularyBank}
+        patterns={sentencePatterns}
+        onSpeak={speakText}
+        onRecordAnswer={recordAnswer}
+      />
+    );
+  } else if (page === "mock") {
+    pageContent = (
+      <MockExam
+        listeningQuestions={listeningQuestions}
+        grammarQuestions={grammarQuestions}
+        readingQuestions={readingQuestions}
+        onSpeak={speakText}
+        onSaveMockTest={saveMockTest}
+      />
     );
   } else if (page === "strategy") {
     pageContent = <StrategyCenter sections={strategySections} />;
@@ -552,6 +612,8 @@ function App() {
         achievements={achievements}
         weakCategories={weakCategories}
         reviewQueue={reviewQueue}
+        mockTests={state.mockTests}
+        onSaveMockTest={saveMockTest}
       />
     );
   }
@@ -570,7 +632,7 @@ function App() {
         <div className="topbar-stats">
           <span>XP {stats.xp}</span>
           <span>Streak {stats.streak}</span>
-          <span>估分 {stats.predictedScore}</span>
+          <span>TOEIC {stats.predictedScore}</span>
         </div>
       </header>
 
@@ -591,7 +653,10 @@ function App() {
 
       <footer className="app-footer">
         <p>{APP_COPY.motto}</p>
-        <p>目前版本先以 255 起步救援為主，資料結構已預留擴充到 6000+ 單字、片語與進階題庫。</p>
+        <p>
+          TOEIC Quest AI 2.0 now connects vocabulary, pronunciation, shadowing, listening, grammar,
+          reading, speaking, and adaptive review into one study loop.
+        </p>
       </footer>
     </div>
   );

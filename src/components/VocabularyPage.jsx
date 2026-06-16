@@ -40,15 +40,12 @@ function VocabularyPage({
   const filteredWords = useMemo(
     () =>
       words.filter((word) => {
-        const matchesEnglish =
-          !normalizedEn || word.word.toLowerCase().includes(normalizedEn);
+        const matchesEnglish = !normalizedEn || word.word.toLowerCase().includes(normalizedEn);
         const matchesChinese = !normalizedZh || word.meaning.includes(normalizedZh);
         const matchesCategory = category === "all" || word.category === category;
         const matchesLevel = level === "all" || word.level === level;
-        const matchesPartOfSpeech =
-          partOfSpeech === "all" || word.partOfSpeech === partOfSpeech;
-        const matchesFrequency =
-          frequency === "all" || String(word.frequency) === String(frequency);
+        const matchesPartOfSpeech = partOfSpeech === "all" || word.partOfSpeech === partOfSpeech;
+        const matchesFrequency = frequency === "all" || String(word.frequency) === String(frequency);
         const matchesFavorite = !favoritesOnly || favoriteIds.includes(word.id);
 
         return (
@@ -77,8 +74,7 @@ function VocabularyPage({
   const filteredPhrases = useMemo(
     () =>
       phrases.filter((phrase) => {
-        const matchesEnglish =
-          !normalizedEn || phrase.phrase.toLowerCase().includes(normalizedEn);
+        const matchesEnglish = !normalizedEn || phrase.phrase.toLowerCase().includes(normalizedEn);
         const matchesChinese = !normalizedZh || phrase.meaning.includes(normalizedZh);
         const matchesCategory = category === "all" || phrase.category === category;
         return matchesEnglish && matchesChinese && matchesCategory;
@@ -105,25 +101,27 @@ function VocabularyPage({
 
   const masteredCount = Object.values(wordProgress).filter((item) => item.mastered).length;
   const visibleWords = filteredWords.slice(0, visibleCount);
+  const visiblePhrases = filteredPhrases.slice(0, visibleCount);
+  const visiblePatterns = filteredPatterns.slice(0, visibleCount);
 
   return (
     <section className="page-shell">
       <div className="hero-card compact">
         <div>
-          <p className="eyebrow">TOEIC Vocabulary Bank</p>
-          <h2>真正可搜尋、可篩選、可練習的大型單字庫</h2>
+          <p className="eyebrow">Vocabulary Bank</p>
+          <h2>Build vocabulary, phrases, and patterns together</h2>
           <p className="hero-description">
-            這一版不只是寫支援 6000+，而是網站現在真的有 7000 筆可顯示的字彙資料。
+            TOEIC Quest is not just a word list. Study vocabulary, business phrases, and sentence patterns in one connected bank.
           </p>
         </div>
         <div className="metric-grid">
           <div className="metric-card">
             <span>Total Words</span>
-            <strong>{words.length}</strong>
+            <strong>{words.length.toLocaleString()}</strong>
           </div>
           <div className="metric-card">
             <span>Filtered Words</span>
-            <strong>{filteredWords.length}</strong>
+            <strong>{filteredWords.length.toLocaleString()}</strong>
           </div>
           <div className="metric-card">
             <span>Favorites</span>
@@ -139,9 +137,9 @@ function VocabularyPage({
       <div className="filter-bar quest-card">
         <div className="tabs">
           {[
-            { id: "words", label: "單字庫" },
-            { id: "phrases", label: "片語庫" },
-            { id: "patterns", label: "句型庫" },
+            { id: "words", label: `Words (${words.length.toLocaleString()})` },
+            { id: "phrases", label: `Phrases (${phrases.length.toLocaleString()})` },
+            { id: "patterns", label: `Patterns (${patterns.length.toLocaleString()})` },
           ].map((item) => (
             <button
               key={item.id}
@@ -156,27 +154,27 @@ function VocabularyPage({
 
         <div className="filter-grid">
           <label>
-            搜尋英文
+            Search English
             <input
               value={searchEn}
               onChange={(event) => setSearchEn(event.target.value)}
-              placeholder="例如 invoice / shipment / schedule"
+              placeholder="invoice / shipment / benchmark"
             />
           </label>
 
           <label>
-            搜尋中文
+            Search Chinese
             <input
               value={searchZh}
               onChange={(event) => setSearchZh(event.target.value)}
-              placeholder="例如 發票 / 庫存 / 會議"
+              placeholder="發票 / 物流 / 庫存"
             />
           </label>
 
           <label>
-            類別
+            Category
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">全部</option>
+              <option value="all">All</option>
               {categories.map((item) => (
                 <option key={item.id} value={item.label}>
                   {item.label} / {item.labelZh}
@@ -186,9 +184,9 @@ function VocabularyPage({
           </label>
 
           <label>
-            難度
+            Level
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="all">全部</option>
+              <option value="all">All</option>
               {levels.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
@@ -198,9 +196,9 @@ function VocabularyPage({
           </label>
 
           <label>
-            詞性
+            Part of Speech
             <select value={partOfSpeech} onChange={(event) => setPartOfSpeech(event.target.value)}>
-              <option value="all">全部</option>
+              <option value="all">All</option>
               {partOfSpeechOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -210,12 +208,12 @@ function VocabularyPage({
           </label>
 
           <label>
-            頻率
+            Frequency
             <select value={frequency} onChange={(event) => setFrequency(event.target.value)}>
-              <option value="all">全部</option>
+              <option value="all">All</option>
               {[5, 4, 3, 2, 1].map((item) => (
                 <option key={item} value={item}>
-                  {item} 星
+                  {item} star
                 </option>
               ))}
             </select>
@@ -227,7 +225,7 @@ function VocabularyPage({
               checked={favoritesOnly}
               onChange={(event) => setFavoritesOnly(event.target.checked)}
             />
-            只看收藏
+            Favorites only
           </label>
         </div>
       </div>
@@ -237,10 +235,10 @@ function VocabularyPage({
           <div className="quest-card">
             <div className="card-row">
               <strong>
-                目前顯示 {visibleWords.length} / {filteredWords.length} 筆
+                Showing {visibleWords.length.toLocaleString()} / {filteredWords.length.toLocaleString()} words
               </strong>
               <span className="muted">
-                為了避免一次渲染 7000 張卡片造成卡頓，頁面先顯示前幾筆，可再繼續載入。
+                Large lists are revealed in batches so search and scrolling stay fast.
               </span>
             </div>
           </div>
@@ -261,13 +259,13 @@ function VocabularyPage({
           {visibleCount < filteredWords.length && (
             <div className="quest-card">
               <div className="card-row">
-                <span>還有 {filteredWords.length - visibleWords.length} 筆符合條件的單字</span>
+                <span>{(filteredWords.length - visibleWords.length).toLocaleString()} more words available</span>
                 <button
                   type="button"
                   className="primary-button"
                   onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
                 >
-                  再載入 60 筆
+                  Load 60 More
                 </button>
               </div>
             </div>
@@ -276,8 +274,9 @@ function VocabularyPage({
       )}
 
       {tab === "phrases" && (
+        <>
         <div className="card-grid">
-          {filteredPhrases.map((phrase) => (
+          {visiblePhrases.map((phrase) => (
             <article key={phrase.id} className="quest-card resource-card">
               <div className="card-topline">
                 <div>
@@ -295,11 +294,27 @@ function VocabularyPage({
             </article>
           ))}
         </div>
+        {visibleCount < filteredPhrases.length && (
+          <div className="quest-card">
+            <div className="card-row">
+              <span>{(filteredPhrases.length - visiblePhrases.length).toLocaleString()} more phrases available</span>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
+              >
+                Load 60 More
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {tab === "patterns" && (
+        <>
         <div className="card-grid">
-          {filteredPatterns.map((pattern) => (
+          {visiblePatterns.map((pattern) => (
             <article key={pattern.id} className="quest-card resource-card">
               <div className="card-topline">
                 <div>
@@ -308,17 +323,35 @@ function VocabularyPage({
                   </p>
                   <h3>{pattern.pattern}</h3>
                 </div>
+                <button type="button" className="icon-button" onClick={() => onSpeak(pattern.example)}>
+                  ▶
+                </button>
               </div>
               <p>{pattern.explanation}</p>
               <p className="word-example">{pattern.example}</p>
               <p className="word-example-zh">{pattern.exampleZh}</p>
               <div className="tip-box">
-                <strong>解題提醒</strong>
+                <strong>Quick tip</strong>
                 <p>{pattern.tip}</p>
               </div>
             </article>
           ))}
         </div>
+        {visibleCount < filteredPatterns.length && (
+          <div className="quest-card">
+            <div className="card-row">
+              <span>{(filteredPatterns.length - visiblePatterns.length).toLocaleString()} more patterns available</span>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
+              >
+                Load 60 More
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
     </section>
   );

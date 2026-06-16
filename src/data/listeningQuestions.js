@@ -1,332 +1,269 @@
+import { sentencePatterns } from "./sentencePatterns.js";
+import { vocabularyBank } from "./vocabulary/index.js";
+
 export const listeningLevels = [
-  { id: 1, title: "Level 1 聽單字選中文", description: "先建立聽到基本單字就能連到中文意思的能力。" },
-  { id: 2, title: "Level 2 聽單字選英文", description: "建立音和字的連結，讓你看到聽到同一個字都能辨認。" },
-  { id: 3, title: "Level 3 聽短句選中文", description: "先從短句理解開始，不急著上完整對話。" },
-  { id: 4, title: "Level 4 聽關鍵字找答案", description: "訓練疑問詞、地點、人物、原因與下一步行動。" },
-  { id: 5, title: "Level 5 模擬 TOEIC 聽力", description: "用短對話和廣播型題目接近正式考試。" },
+  {
+    id: 1,
+    title: "Level 1 Word to Chinese",
+    description: "從單字聽力開始，先建立最基本的商務字彙辨識。",
+  },
+  {
+    id: 2,
+    title: "Level 2 Word to English",
+    description: "聽到發音後，練習辨認正確英文單字。",
+  },
+  {
+    id: 3,
+    title: "Level 3 Short Sentence",
+    description: "從短句開始聽意思，降低一開始聽長對話的壓力。",
+  },
+  {
+    id: 4,
+    title: "Level 4 Question and Response",
+    description: "練習 Where / When / Why / How 等關鍵問句。",
+  },
+  {
+    id: 5,
+    title: "Level 5 TOEIC-style Mini Talks",
+    description: "進入接近 TOEIC 的公告、對話與下一步判斷。",
+  },
 ];
 
-export const listeningQuestions = [
-  {
-    id: "l1-1",
+const simpleWords = vocabularyBank.filter(
+  (word) => !word.word.includes(" ") && word.word.length <= 18 && word.meaning.length <= 10,
+);
+
+function sampleDistractors(pool, answer, getValue, count = 3) {
+  const used = new Set([answer]);
+  const options = [];
+
+  for (let index = 0; index < pool.length && options.length < count; index += 1) {
+    const value = getValue(pool[index]);
+    if (used.has(value)) {
+      continue;
+    }
+    used.add(value);
+    options.push(value);
+  }
+
+  return options;
+}
+
+function shuffle(list) {
+  return [...list].sort(() => Math.random() - 0.5);
+}
+
+const listeningQuestions = [];
+let id = 1;
+
+for (let index = 0; index < 900; index += 1) {
+  const word = simpleWords[index % simpleWords.length];
+  const distractorPool = simpleWords.filter(
+    (item) => item.category === word.category && item.id !== word.id,
+  );
+  const options = shuffle([
+    word.meaning,
+    ...sampleDistractors(distractorPool, word.meaning, (item) => item.meaning),
+  ]);
+
+  listeningQuestions.push({
+    id: `l-${String(id).padStart(4, "0")}`,
     level: 1,
     difficulty: "easy",
-    prompt: "聽單字選中文",
-    audioText: "invoice",
-    transcript: "invoice",
-    options: ["發票", "會議", "倉庫", "旅館"],
-    answer: "發票",
-    keyword: "invoice",
-    category: "Finance",
-    explanationZh: "invoice 是發票，常和 issue, send, pay 搭配。",
-    why: "這題先建立單字聲音與中文意思的連結。",
-  },
-  {
-    id: "l1-2",
-    level: 1,
-    difficulty: "easy",
-    prompt: "聽單字選中文",
-    audioText: "warehouse",
-    transcript: "warehouse",
-    options: ["倉庫", "廣告", "預算", "面試"],
-    answer: "倉庫",
-    keyword: "warehouse",
-    category: "Shipping",
-    explanationZh: "warehouse 指倉庫，是物流主題高頻字。",
-    why: "很多人會和 workshop 混淆，所以要特別記聲音。",
-  },
-  {
-    id: "l1-3",
-    level: 1,
-    difficulty: "easy",
-    prompt: "聽單字選中文",
-    audioText: "schedule",
-    transcript: "schedule",
-    options: ["行程表", "價格", "顧客", "零件"],
-    answer: "行程表",
-    keyword: "schedule",
-    category: "Office",
-    explanationZh: "schedule 是時程表或行程安排。",
-    why: "這是會議與 email 題最常見的字之一。",
-  },
-  {
-    id: "l1-4",
-    level: 1,
-    difficulty: "easy",
-    prompt: "聽單字選中文",
-    audioText: "refund",
-    transcript: "refund",
-    options: ["退款", "出貨", "報告", "促銷"],
-    answer: "退款",
-    keyword: "refund",
-    category: "Customer Service",
-    explanationZh: "refund 是退款，客服與財務很常考。",
-    why: "如果聽到 refund，常跟 complaint、return、policy 一起出現。",
-  },
-  {
-    id: "l1-5",
-    level: 1,
-    difficulty: "easy",
-    prompt: "聽單字選中文",
-    audioText: "meeting",
-    transcript: "meeting",
-    options: ["會議", "折扣", "工廠", "航班"],
-    answer: "會議",
-    keyword: "meeting",
-    category: "Meeting",
-    explanationZh: "meeting 是會議，也是 TOEIC 最常見基本字之一。",
-    why: "先把基礎商務字聽熟，後面短句才不會卡住。",
-  },
-  {
-    id: "l2-1",
+    prompt: "Listen to the word and choose the Chinese meaning.",
+    audioText: word.word,
+    transcript: word.word,
+    options,
+    answer: word.meaning,
+    keyword: word.word,
+    category: word.category,
+    relatedWordId: word.id,
+    explanationZh: `${word.word} 的意思是「${word.meaning}」。`,
+    why: `這題先抓單字本身，不要被其他同類商務字混淆。${word.exampleZh}`,
+    trapAnalysis: `如果你把 ${word.word} 和同類字搞混，下次先注意它常出現在 ${word.category} 情境。`,
+  });
+  id += 1;
+}
+
+for (let index = 0; index < 700; index += 1) {
+  const word = simpleWords[(index + 900) % simpleWords.length];
+  const distractorPool = simpleWords.filter(
+    (item) => item.level === word.level && item.id !== word.id,
+  );
+  const options = shuffle([
+    word.word,
+    ...sampleDistractors(distractorPool, word.word, (item) => item.word),
+  ]);
+
+  listeningQuestions.push({
+    id: `l-${String(id).padStart(4, "0")}`,
     level: 2,
     difficulty: "easy",
-    prompt: "聽單字選英文",
-    audioText: "budget",
-    transcript: "budget",
-    options: ["budget", "badge", "baggage", "bid"],
-    answer: "budget",
-    keyword: "budget",
-    category: "Finance",
-    explanationZh: "budget 是預算，常和 set, reduce, approve 搭配。",
-    why: "這題在練音和拼字連結，避免看到選項時分不清相似字。",
-  },
-  {
-    id: "l2-2",
-    level: 2,
-    difficulty: "easy",
-    prompt: "聽單字選英文",
-    audioText: "candidate",
-    transcript: "candidate",
-    options: ["calendar", "candidate", "catalog", "cabinet"],
-    answer: "candidate",
-    keyword: "candidate",
-    category: "HR",
-    explanationZh: "candidate 是候選人、應徵者。",
-    why: "人事題常把 candidate 跟 calendar, catalog 放一起干擾。",
-  },
-  {
-    id: "l2-3",
-    level: 2,
-    difficulty: "easy",
-    prompt: "聽單字選英文",
-    audioText: "shipment",
-    transcript: "shipment",
-    options: ["statement", "shipment", "special", "station"],
-    answer: "shipment",
-    keyword: "shipment",
-    category: "Shipping",
-    explanationZh: "shipment 是貨件或出貨。",
-    why: "這題在練相似開頭字的辨認，不要被 station 誤導。",
-  },
-  {
-    id: "l2-4",
-    level: 2,
-    difficulty: "easy",
-    prompt: "聽單字選英文",
-    audioText: "receipt",
-    transcript: "receipt",
-    options: ["recipe", "receipt", "recruit", "request"],
-    answer: "receipt",
-    keyword: "receipt",
-    category: "Finance",
-    explanationZh: "receipt 是收據，不是 recipe 食譜。",
-    why: "這是典型的相似音與相似拼字陷阱。",
-  },
-  {
-    id: "l2-5",
-    level: 2,
-    difficulty: "easy",
-    prompt: "聽單字選英文",
-    audioText: "manager",
-    transcript: "manager",
-    options: ["manager", "message", "measure", "manual"],
-    answer: "manager",
-    keyword: "manager",
-    category: "HR",
-    explanationZh: "manager 是經理。",
-    why: "人物職稱一定要聽熟，Part 3 和 Part 4 常考。",
-  },
-  {
-    id: "l3-1",
+    prompt: "Listen to the word and choose the English answer.",
+    audioText: word.word,
+    transcript: word.word,
+    options,
+    answer: word.word,
+    keyword: word.meaning,
+    category: word.category,
+    relatedWordId: word.id,
+    explanationZh: `這題聽到的是 ${word.word}，中文是「${word.meaning}」。`,
+    why: "單字聽寫最怕同音或開頭相似，下次先抓第一個音節。",
+    trapAnalysis: `常見陷阱是把 ${word.word} 聽成發音接近的字，所以要先穩住前半段音。`,
+  });
+  id += 1;
+}
+
+const sentencePool = sentencePatterns.slice(0, 700);
+const sentenceZhPool = sentencePatterns.slice(60, 760);
+
+for (let index = 0; index < 700; index += 1) {
+  const item = sentencePool[index];
+  const distractorPool = sentenceZhPool.filter((entry) => entry.id !== item.id);
+  const options = shuffle([
+    item.exampleZh,
+    ...sampleDistractors(distractorPool, item.exampleZh, (entry) => entry.exampleZh),
+  ]);
+
+  listeningQuestions.push({
+    id: `l-${String(id).padStart(4, "0")}`,
     level: 3,
-    difficulty: "easy",
-    prompt: "聽短句選中文",
-    audioText: "The meeting starts at nine.",
-    transcript: "The meeting starts at nine.",
-    options: ["會議九點開始。", "會議在九號房。", "會議延期到下週。", "會議已經取消。"],
-    answer: "會議九點開始。",
-    keyword: "starts at nine",
-    category: "Meeting",
-    explanationZh: "starts at nine 就是九點開始。",
-    why: "短句先抓主詞 meeting，再抓時間 at nine。",
-  },
-  {
-    id: "l3-2",
-    level: 3,
-    difficulty: "easy",
-    prompt: "聽短句選中文",
-    audioText: "Please send the invoice today.",
-    transcript: "Please send the invoice today.",
-    options: ["請今天寄發票。", "請今天參加會議。", "請今天清理倉庫。", "請今天修改菜單。"],
-    answer: "請今天寄發票。",
-    keyword: "send the invoice today",
-    category: "Finance",
-    explanationZh: "send the invoice today 是今天寄送發票。",
-    why: "這題要抓 send 和 invoice 兩個核心字。",
-  },
-  {
-    id: "l3-3",
-    level: 3,
-    difficulty: "easy",
-    prompt: "聽短句選中文",
-    audioText: "Your order has been shipped.",
-    transcript: "Your order has been shipped.",
-    options: ["你的訂單已經出貨。", "你的訂單需要修改。", "你的訂單已經退款。", "你的訂單放在會議室。"],
-    answer: "你的訂單已經出貨。",
-    keyword: "has been shipped",
-    category: "Shipping",
-    explanationZh: "has been shipped 表示已經被寄出。",
-    why: "聽到 shipped 就要想到出貨，不要只抓 order。",
-  },
-  {
-    id: "l3-4",
-    level: 3,
-    difficulty: "easy",
-    prompt: "聽短句選中文",
-    audioText: "The report was completed yesterday.",
-    transcript: "The report was completed yesterday.",
-    options: ["報告昨天完成了。", "報告明天要開始。", "報告放在桌子下面。", "報告很快會寄出。"],
-    answer: "報告昨天完成了。",
-    keyword: "completed yesterday",
-    category: "Office",
-    explanationZh: "was completed yesterday 是昨天已完成。",
-    why: "關鍵在於 completed 和 yesterday 兩個訊號。",
-  },
-  {
-    id: "l4-1",
-    level: 4,
     difficulty: "normal",
-    prompt: "聽關鍵字找答案",
-    audioText: "Where is the training room?",
-    transcript: "Where is the training room?",
-    options: ["On the third floor", "At 3 p.m.", "Because it is full", "Mr. Wang"],
-    answer: "On the third floor",
-    keyword: "Where",
-    category: "Listening Keyword Coach",
-    explanationZh: "Where 問地點，所以答案要找地點片語。",
-    why: "你只要先聽到 Where，就能先刪掉時間、原因、人物。",
-    trapType: "where-vs-when",
-    trapAnalysis: "這題最容易被 at 3 p.m. 誘惑，但那是時間，不是地點。",
+    prompt: "Listen to the sentence and choose the best Chinese meaning.",
+    audioText: item.example,
+    transcript: item.example,
+    options,
+    answer: item.exampleZh,
+    keyword: item.category,
+    category: item.category,
+    explanationZh: `句子重點在 ${item.category}，完整意思是：${item.exampleZh}`,
+    why: `先抓主詞、動詞和時間字，再判斷整句意思。${item.tip}`,
+    trapAnalysis: "如果你只抓到單字卻沒抓到動作和時間，容易選到看起來像、意思卻不完整的選項。",
+  });
+  id += 1;
+}
+
+const qaPatterns = [
+  {
+    type: "Where",
+    question: (word) => `Where should I leave the ${word.word}?`,
+    answer: (word) => `At the ${word.category.toLowerCase()} desk.`,
+    distractors: ["Tomorrow morning.", "Because the file is urgent.", "By email."],
+    explanation: "Where 題先找地點答案。",
+    trap: "如果你看到 tomorrow 或 at 3 p.m.，那是時間，不是地點。",
   },
   {
-    id: "l4-2",
-    level: 4,
-    difficulty: "normal",
-    prompt: "聽關鍵字找答案",
-    audioText: "When will the supplier arrive?",
-    transcript: "When will the supplier arrive?",
-    options: ["Next Monday", "In the lobby", "The sales team", "Because of traffic"],
-    answer: "Next Monday",
-    keyword: "When",
-    category: "Listening Keyword Coach",
-    explanationZh: "When 問時間，Next Monday 是標準時間答案。",
-    why: "先抓疑問詞，避免被 in the lobby 這種地點字帶走。",
-    trapType: "when-vs-where",
-    trapAnalysis: "這題不是問地點，所以不能選 In the lobby。",
+    type: "When",
+    question: (word) => `When will the ${word.word} be ready?`,
+    answer: () => "By Friday afternoon.",
+    distractors: ["In the lobby.", "The project manager.", "Because of the delay."],
+    explanation: "When 題先找時間、日期或時段。",
+    trap: "不要被地點詞或人物詞帶走。",
   },
   {
-    id: "l4-3",
-    level: 4,
-    difficulty: "normal",
-    prompt: "聽關鍵字找答案",
-    audioText: "Why was the shipment delayed?",
-    transcript: "Why was the shipment delayed?",
-    options: ["Because of the storm", "At the airport", "For two hours", "By truck"],
-    answer: "Because of the storm",
-    keyword: "Why",
-    category: "Listening Keyword Coach",
-    explanationZh: "Why 問原因，because of the storm 才有回應題目。",
-    why: "這類題型非常適合先找 because, due to 等訊號。",
-    trapType: "echo-keyword",
-    trapAnalysis: "即使選項有 shipment 相關字，也要先回題目要的答案屬性。",
+    type: "Who",
+    question: (word) => `Who approved the ${word.word}?`,
+    answer: () => "The finance director.",
+    distractors: ["In Room B.", "Tomorrow morning.", "Because it was urgent."],
+    explanation: "Who 題找人物或職稱。",
+    trap: "看到時間或地點就先排除。",
   },
   {
-    id: "l4-4",
-    level: 4,
-    difficulty: "normal",
-    prompt: "聽關鍵字找答案",
-    audioText: "How much is the repair fee?",
-    transcript: "How much is the repair fee?",
-    options: ["Fifty dollars", "For three days", "At the front desk", "The technician"],
-    answer: "Fifty dollars",
-    keyword: "How much",
-    category: "Listening Keyword Coach",
-    explanationZh: "How much 只找價格。",
-    why: "看到 how much，其他不是金額的選項都能先排除。",
-    trapType: "next-step",
-    trapAnalysis: "這題不是問多久，也不是問誰，先鎖定金額最省時間。",
+    type: "Why",
+    question: (word) => `Why was the ${word.word} delayed?`,
+    answer: () => "Because the supplier changed the schedule.",
+    distractors: ["At the airport gate.", "Next Tuesday.", "The assistant manager."],
+    explanation: "Why 題重點是原因，常見 because / due to。",
+    trap: "Why 很容易錯選 Where 或 When 類型答案。",
   },
   {
-    id: "l4-5",
-    level: 4,
-    difficulty: "normal",
-    prompt: "聽關鍵字找答案",
-    audioText: "How long will the seminar last?",
-    transcript: "How long will the seminar last?",
-    options: ["For two hours", "At two o'clock", "In Room B", "With the manager"],
-    answer: "For two hours",
-    keyword: "How long",
-    category: "Listening Keyword Coach",
-    explanationZh: "How long 問時間長度，不是時間點。",
-    why: "last 是持續多久的訊號，要找 for two hours 這種答案。",
-    trapType: "where-vs-when",
-    trapAnalysis: "At two o'clock 是開始時間，不是長度。",
+    type: "How much",
+    question: (word) => `How much did the ${word.word} cost?`,
+    answer: () => "About twenty dollars.",
+    distractors: ["For two hours.", "Near the reception desk.", "The sales intern."],
+    explanation: "How much 題要找價格或數字。",
+    trap: "如果選到 for two hours，那是 How long，不是 How much。",
   },
   {
-    id: "l5-1",
-    level: 5,
-    difficulty: "green",
-    prompt: "模擬短對話",
-    audioText:
-      "Hi, this is Emma from Bright Logistics. I'm calling about your order. The train has been delayed, so the shipment will arrive tomorrow morning. Please contact customer service if you need to change the delivery time.",
-    transcript:
-      "Hi, this is Emma from Bright Logistics. I'm calling about your order. The train has been delayed, so the shipment will arrive tomorrow morning. Please contact customer service if you need to change the delivery time.",
-    options: [
-      "The shipment will arrive tomorrow morning.",
-      "The meeting has been canceled.",
-      "The order has already been refunded.",
-      "The customer must visit the station today.",
-    ],
-    answer: "The shipment will arrive tomorrow morning.",
-    keyword: "arrive tomorrow morning",
-    category: "TOEIC Dialogue",
-    explanationZh: "對話明確說明貨件因火車延誤，會在明天早上到。",
-    why: "先抓 I'm calling about your order，再抓關鍵資訊 delayed 和 tomorrow morning。",
-    trapType: "next-step",
-    trapAnalysis: "這題若問下一步，要找 please contact customer service，不是只抓 delay。",
-  },
-  {
-    id: "l5-2",
-    level: 5,
-    difficulty: "green",
-    prompt: "模擬廣播",
-    audioText:
-      "Attention passengers. Flight 287 to Tokyo will depart from Gate 12 instead of Gate 9. Boarding will begin at 4:20 p.m. Please have your identification ready.",
-    transcript:
-      "Attention passengers. Flight 287 to Tokyo will depart from Gate 12 instead of Gate 9. Boarding will begin at 4:20 p.m. Please have your identification ready.",
-    options: [
-      "Passengers should go to Gate 12.",
-      "The flight leaves tomorrow morning.",
-      "Passengers need to check out of a hotel.",
-      "The gate is on the second floor.",
-    ],
-    answer: "Passengers should go to Gate 12.",
-    keyword: "Gate 12 instead of Gate 9",
-    category: "TOEIC Broadcast",
-    explanationZh: "廣播的重點是登機門改成 Gate 12。",
-    why: "Instead of 是轉折重點，後面的資訊才是正確答案。",
-    trapType: "sound-alike",
-    trapAnalysis: "很多人只聽到 Gate 9 就選錯，但真正答案在 instead of 之後。",
+    type: "How long",
+    question: (word) => `How long will the ${word.word} take?`,
+    answer: () => "For about three days.",
+    distractors: ["At the service counter.", "About twenty dollars.", "The branch office."],
+    explanation: "How long 題看時間長度。",
+    trap: "金額和地點都不是這題的重點。",
   },
 ];
+
+for (let index = 0; index < 400; index += 1) {
+  const word = simpleWords[(index + 1600) % simpleWords.length];
+  const pattern = qaPatterns[index % qaPatterns.length];
+  const answer = pattern.answer(word);
+  const options = shuffle([answer, ...pattern.distractors]);
+
+  listeningQuestions.push({
+    id: `l-${String(id).padStart(4, "0")}`,
+    level: 4,
+    difficulty: "green",
+    prompt: "Listen to the question and choose the best response.",
+    audioText: pattern.question(word),
+    transcript: pattern.question(word),
+    options,
+    answer,
+    keyword: pattern.type,
+    category: `${pattern.type} Keyword Coach`,
+    relatedWordId: word.id,
+    explanationZh: `${pattern.explanation} 正確答案是：${answer}`,
+    why: `這題先聽第一個疑問詞 ${pattern.type}，再找對應類型的答案。`,
+    trapAnalysis: pattern.trap,
+  });
+  id += 1;
+}
+
+const talkPurpose = [
+  "confirm a delivery",
+  "reschedule a meeting",
+  "report a delay",
+  "announce a training session",
+  "request technical support",
+  "check a hotel reservation",
+];
+
+for (let index = 0; index < 300; index += 1) {
+  const word = simpleWords[(index + 2000) % simpleWords.length];
+  const purpose = talkPurpose[index % talkPurpose.length];
+  const talk = [
+    `Hello, this is Maya from the ${word.category} team.`,
+    `I'm calling to ${purpose}.`,
+    `Please review the ${word.word} before 3 p.m.`,
+    `If you have any questions, contact customer service right away.`,
+  ].join(" ");
+
+  const question = "What is the next step?";
+  const answer = `Review the ${word.word} before 3 p.m.`;
+  const options = shuffle([
+    answer,
+    "Wait until next month.",
+    "Go to the airport gate.",
+    "Cancel the customer account immediately.",
+  ]);
+
+  listeningQuestions.push({
+    id: `l-${String(id).padStart(4, "0")}`,
+    level: 5,
+    difficulty: "blue",
+    prompt: question,
+    audioText: talk,
+    transcript: talk,
+    options,
+    answer,
+    keyword: purpose,
+    category: word.category,
+    relatedWordId: word.id,
+    explanationZh: `最後一句提到 Please review the ${word.word} before 3 p.m.，所以下一步就是先檢查它。`,
+    why: "下一步行動題要特別抓 will / need to / please 之後的動作。",
+    trapAnalysis: "這類題最常被前面提到的背景資訊誤導，真正答案通常藏在最後一句的指示動作。",
+  });
+  id += 1;
+}
+
+export { listeningQuestions };

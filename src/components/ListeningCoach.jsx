@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { pickAdaptiveItem } from "../utils/adaptive";
 
 function ListeningCoach({
   levels,
@@ -7,6 +8,7 @@ function ListeningCoach({
   trapGuides,
   onSpeak,
   onRecordAnswer,
+  adaptiveProfile,
 }) {
   const [tab, setTab] = useState("practice");
   const [level, setLevel] = useState("all");
@@ -14,20 +16,24 @@ function ListeningCoach({
   const [feedback, setFeedback] = useState(null);
   const [keywordFeedback, setKeywordFeedback] = useState({});
 
-  const pool = questions.filter((item) => (level === "all" ? true : item.level === Number(level)));
+  const pool = useMemo(
+    () => questions.filter((item) => (level === "all" ? true : item.level === Number(level))),
+    [questions, level],
+  );
 
   useEffect(() => {
     if (pool.length > 0) {
-      setQuestion(pool[Math.floor(Math.random() * pool.length)]);
+      setQuestion(
+        pickAdaptiveItem(pool, adaptiveProfile, {
+          domain: "listening",
+          getItemId: (item) => item.id,
+          getRelatedWordId: (item) => item.relatedWordId,
+          getCategory: (item) => item.category,
+        }),
+      );
       setFeedback(null);
     }
-  }, [level]);
-
-  useEffect(() => {
-    if (!question && pool.length > 0) {
-      setQuestion(pool[Math.floor(Math.random() * pool.length)]);
-    }
-  }, [question, pool]);
+  }, [level, pool, adaptiveProfile]);
 
   const submitAnswer = (option) => {
     if (!question) {
@@ -40,20 +46,26 @@ function ListeningCoach({
     onRecordAnswer({
       domain: "listening",
       itemId: question.id,
+      relatedWordId: question.relatedWordId,
       category: question.category,
       prompt: question.transcript,
       correct,
       userAnswer: option,
       correctAnswer: question.answer,
       explanationZh: question.explanationZh,
-      reason: correct
-        ? question.why
-        : `${question.explanationZh} ${question.trapAnalysis ?? ""}`.trim(),
+      reason: correct ? question.why : `${question.explanationZh} ${question.trapAnalysis ?? ""}`.trim(),
     });
   };
 
   const nextQuestion = () => {
-    setQuestion(pool[Math.floor(Math.random() * pool.length)]);
+    setQuestion(
+      pickAdaptiveItem(pool, adaptiveProfile, {
+        domain: "listening",
+        getItemId: (item) => item.id,
+        getRelatedWordId: (item) => item.relatedWordId,
+        getCategory: (item) => item.category,
+      }),
+    );
     setFeedback(null);
   };
 
@@ -62,9 +74,9 @@ function ListeningCoach({
       <div className="hero-card compact">
         <div>
           <p className="eyebrow">Listening Coach</p>
-          <h2>聽力從單字開始，慢慢升到 TOEIC 題感</h2>
+          <h2>從聽單字一路升到 TOEIC 聽力</h2>
           <p className="hero-description">
-            先練聲音和意思的連結，再進入疑問詞、關鍵字與短對話判斷。
+            這裡會優先安排你最近答錯的題型，同時降低最近 50 題內重複出現的機率。
           </p>
         </div>
       </div>
@@ -72,9 +84,9 @@ function ListeningCoach({
       <div className="quest-card filter-bar">
         <div className="tabs">
           {[
-            { id: "practice", label: "分級練習" },
-            { id: "keywords", label: "關鍵字教練" },
-            { id: "traps", label: "陷阱分析" },
+            { id: "practice", label: "Listening Practice" },
+            { id: "keywords", label: "Keyword Coach" },
+            { id: "traps", label: "Trap Analyzer" },
           ].map((item) => (
             <button
               key={item.id}
@@ -89,9 +101,9 @@ function ListeningCoach({
 
         {tab === "practice" && (
           <label>
-            練習等級
+            Level
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="all">全部</option>
+              <option value="all">All</option>
               {levels.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.title}
@@ -112,11 +124,11 @@ function ListeningCoach({
               <h3>{question.prompt}</h3>
             </div>
             <button type="button" className="primary-button" onClick={() => onSpeak(question.audioText)}>
-              播放語音
+              Play Audio
             </button>
           </div>
 
-          <p className="question-subtext">關鍵焦點：{question.keyword}</p>
+          <p className="question-subtext">Keyword focus: {question.keyword}</p>
 
           <div className="option-grid">
             {question.options.map((option) => (
@@ -134,18 +146,18 @@ function ListeningCoach({
 
           {feedback && (
             <div className={`feedback-panel ${feedback.correct ? "correct" : "wrong"}`}>
-              <strong>{feedback.correct ? "答對了" : "答錯了"}</strong>
-              <p>正確答案：{question.answer}</p>
+              <strong>{feedback.correct ? "Correct" : "Try again"}</strong>
+              <p>Answer: {question.answer}</p>
               <p>{question.explanationZh}</p>
               <p>{question.why}</p>
               {question.trapAnalysis && (
                 <div className="tip-box">
-                  <strong>你剛剛可能卡住的點</strong>
+                  <strong>Trap analysis</strong>
                   <p>{question.trapAnalysis}</p>
                 </div>
               )}
               <button type="button" className="primary-button" onClick={nextQuestion}>
-                下一題
+                Next Question
               </button>
             </div>
           )}
@@ -164,7 +176,7 @@ function ListeningCoach({
               </div>
               <p>{guide.explanation}</p>
               <div className="bullet-box">
-                <strong>常見答案</strong>
+                <strong>Common answers</strong>
                 <ul>
                   {guide.commonAnswers.map((item) => (
                     <li key={item}>{item}</li>
@@ -172,7 +184,7 @@ function ListeningCoach({
                 </ul>
               </div>
               <div className="bullet-box">
-                <strong>例句</strong>
+                <strong>Examples</strong>
                 <ul>
                   {guide.examples.map((item) => (
                     <li key={item}>{item}</li>
@@ -180,7 +192,7 @@ function ListeningCoach({
                 </ul>
               </div>
               <div className="tip-box">
-                <strong>小練習</strong>
+                <strong>Quick drill</strong>
                 <p>{guide.drill.question}</p>
                 <div className="option-grid compact-grid">
                   {guide.drill.options.map((option) => (
@@ -215,8 +227,8 @@ function ListeningCoach({
                 {keywordFeedback[guide.id] && (
                   <p className={keywordFeedback[guide.id].correct ? "feedback-inline ok" : "feedback-inline warn"}>
                     {keywordFeedback[guide.id].correct
-                      ? `答對了：${guide.drill.explanation}`
-                      : `答錯了：${guide.drill.explanation}`}
+                      ? `Nice. ${guide.drill.explanation}`
+                      : `Look again. ${guide.drill.explanation}`}
                   </p>
                 )}
               </div>
@@ -233,7 +245,7 @@ function ListeningCoach({
               <h3>{trap.title}</h3>
               <p>{trap.pattern}</p>
               <div className="tip-box">
-                <strong>下次怎麼判斷</strong>
+                <strong>How to avoid it</strong>
                 <p>{trap.fix}</p>
               </div>
             </article>
@@ -245,3 +257,4 @@ function ListeningCoach({
 }
 
 export default ListeningCoach;
+

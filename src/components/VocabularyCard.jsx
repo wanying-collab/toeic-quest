@@ -1,13 +1,7 @@
-function VocabularyCard({
-  word,
-  isFavorite,
-  progress,
-  onToggleFavorite,
-  onSpeak,
-}) {
+function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak }) {
   const nextReviewText = progress?.nextReviewAt
     ? new Date(progress.nextReviewAt).toLocaleDateString("zh-TW")
-    : "尚未安排";
+    : "Not scheduled";
 
   return (
     <article className="quest-card vocab-card">
@@ -22,7 +16,7 @@ function VocabularyCard({
           type="button"
           className={`icon-button ${isFavorite ? "active" : ""}`}
           onClick={() => onToggleFavorite(word.id)}
-          aria-label={isFavorite ? "取消收藏" : "加入收藏"}
+          aria-label={isFavorite ? "Remove favorite" : "Add favorite"}
         >
           {isFavorite ? "★" : "☆"}
         </button>
@@ -38,7 +32,7 @@ function VocabularyCard({
       <p className="word-example-zh">{word.exampleZh}</p>
 
       <div className="word-collocations">
-        <strong>常見搭配</strong>
+        <strong>Collocations</strong>
         <ul>
           {word.collocations.map((item) => (
             <li key={item}>{item}</li>
@@ -47,13 +41,13 @@ function VocabularyCard({
       </div>
 
       <div className="card-row stats-row">
-        <span>錯誤次數 {progress?.wrongCount ?? 0}</span>
-        <span>{progress?.mastered ? "已掌握" : `下次複習 ${nextReviewText}`}</span>
+        <span>Wrong count {progress?.wrongCount ?? 0}</span>
+        <span>{progress?.mastered ? "Mastered" : `Next review ${nextReviewText}`}</span>
       </div>
 
       <div className="card-actions">
         <button type="button" className="secondary-button" onClick={() => onSpeak(word.word)}>
-          播放發音
+          Play Pronunciation
         </button>
       </div>
     </article>
@@ -61,3 +55,4 @@ function VocabularyCard({
 }
 
 export default VocabularyCard;
+

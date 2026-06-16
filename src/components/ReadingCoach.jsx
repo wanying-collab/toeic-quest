@@ -1,27 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { pickAdaptiveItem } from "../utils/adaptive";
 
-function ReadingCoach({ items, ladder, onRecordAnswer }) {
+function ReadingCoach({ items, ladder, onRecordAnswer, onSpeak, adaptiveProfile }) {
   const [stage, setStage] = useState("all");
   const [showTranslation, setShowTranslation] = useState(true);
   const [item, setItem] = useState(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [feedback, setFeedback] = useState(null);
 
-  const filtered = items.filter((entry) => (stage === "all" ? true : entry.stage === stage));
+  const filtered = useMemo(
+    () => items.filter((entry) => (stage === "all" ? true : entry.stage === stage)),
+    [items, stage],
+  );
 
   useEffect(() => {
     if (filtered.length > 0) {
-      setItem(filtered[Math.floor(Math.random() * filtered.length)]);
+      setItem(
+        pickAdaptiveItem(filtered, adaptiveProfile, {
+          domain: "reading",
+          getItemId: (entry) => entry.id,
+          getCategory: (entry) => entry.type,
+        }),
+      );
       setQuestionIndex(0);
       setFeedback(null);
     }
-  }, [stage]);
-
-  useEffect(() => {
-    if (!item && filtered.length > 0) {
-      setItem(filtered[Math.floor(Math.random() * filtered.length)]);
-    }
-  }, [filtered, item]);
+  }, [filtered, adaptiveProfile]);
 
   if (!item) {
     return null;
@@ -53,7 +57,13 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
       return;
     }
 
-    setItem(filtered[Math.floor(Math.random() * filtered.length)]);
+    setItem(
+      pickAdaptiveItem(filtered, adaptiveProfile, {
+        domain: "reading",
+        getItemId: (entry) => entry.id,
+        getCategory: (entry) => entry.type,
+      }),
+    );
     setQuestionIndex(0);
     setFeedback(null);
   };
@@ -63,9 +73,9 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
       <div className="hero-card compact">
         <div>
           <p className="eyebrow">Reading Coach</p>
-          <h2>從短句開始，把閱讀感慢慢建立起來</h2>
+          <h2>從單字、片語一路讀到 Part 7</h2>
           <p className="hero-description">
-            先看題目，再回文章找答案。從單句到 Part 7，不再一開始就被長文嚇到。
+            先看題目，再回文章找關鍵字。系統也會把你最近常錯的文章類型多排一點。
           </p>
         </div>
       </div>
@@ -81,9 +91,9 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
 
       <div className="quest-card filter-bar">
         <label>
-          閱讀階段
+          Stage
           <select value={stage} onChange={(event) => setStage(event.target.value)}>
-            <option value="all">全部</option>
+            <option value="all">All</option>
             {ladder.map((step) => (
               <option key={step.id} value={step.id}>
                 {step.label}
@@ -92,7 +102,7 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
           </select>
         </label>
         <button type="button" className="secondary-button" onClick={() => setShowTranslation((value) => !value)}>
-          {showTranslation ? "隱藏中文翻譯" : "顯示中文翻譯"}
+          {showTranslation ? "Hide Translation" : "Show Translation"}
         </button>
       </div>
 
@@ -102,13 +112,16 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
             <p className="eyebrow">{item.type}</p>
             <h3>{item.title}</h3>
           </div>
+          <button type="button" className="secondary-button" onClick={() => onSpeak(item.text)}>
+            Read Aloud
+          </button>
         </div>
 
         <pre className="reading-passage">{item.text}</pre>
         {showTranslation && <p className="reading-translation">{item.translation}</p>}
 
         <div className="tip-box">
-          <strong>關鍵字提示</strong>
+          <strong>Keywords</strong>
           <p>{item.keywords.join(" / ")}</p>
           <p>{item.strategy}</p>
         </div>
@@ -132,12 +145,12 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
 
         {feedback && (
           <div className={`feedback-panel ${feedback.correct ? "correct" : "wrong"}`}>
-            <strong>{feedback.correct ? "答對了" : "答錯了"}</strong>
-            <p>正確答案：{currentQuestion.answer}</p>
+            <strong>{feedback.correct ? "Correct" : "Try again"}</strong>
+            <p>Answer: {currentQuestion.answer}</p>
             <p>{currentQuestion.explanationZh}</p>
             <p>{item.strategy}</p>
             <button type="button" className="primary-button" onClick={nextStep}>
-              {questionIndex < item.questions.length - 1 ? "下一小題" : "換一篇"}
+              {questionIndex < item.questions.length - 1 ? "Next Question" : "Next Passage"}
             </button>
           </div>
         )}
@@ -147,3 +160,4 @@ function ReadingCoach({ items, ladder, onRecordAnswer }) {
 }
 
 export default ReadingCoach;
+

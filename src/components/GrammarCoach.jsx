@@ -1,24 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { pickAdaptiveItem } from "../utils/adaptive";
 
-function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
+function GrammarCoach({ questions, topics, guides, onRecordAnswer, adaptiveProfile }) {
   const [topic, setTopic] = useState("all");
   const [current, setCurrent] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
-  const filtered = questions.filter((question) => (topic === "all" ? true : question.topic === topic));
+  const filtered = useMemo(
+    () => questions.filter((question) => (topic === "all" ? true : question.topic === topic)),
+    [questions, topic],
+  );
 
   useEffect(() => {
     if (filtered.length > 0) {
-      setCurrent(filtered[Math.floor(Math.random() * filtered.length)]);
+      setCurrent(
+        pickAdaptiveItem(filtered, adaptiveProfile, {
+          domain: "grammar",
+          getItemId: (item) => item.id,
+          getCategory: (item) => item.topic,
+        }),
+      );
       setFeedback(null);
     }
-  }, [topic]);
-
-  useEffect(() => {
-    if (!current && filtered.length > 0) {
-      setCurrent(filtered[Math.floor(Math.random() * filtered.length)]);
-    }
-  }, [current, filtered]);
+  }, [filtered, adaptiveProfile]);
 
   if (!current) {
     return null;
@@ -39,12 +43,18 @@ function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
       explanationZh: current.explanationZh,
       reason: correct
         ? current.technique
-        : `這題要看 ${current.keyword}。${current.technique}`,
+        : `Look at the keyword "${current.keyword}". ${current.technique}`,
     });
   };
 
   const nextQuestion = () => {
-    setCurrent(filtered[Math.floor(Math.random() * filtered.length)]);
+    setCurrent(
+      pickAdaptiveItem(filtered, adaptiveProfile, {
+        domain: "grammar",
+        getItemId: (item) => item.id,
+        getCategory: (item) => item.topic,
+      }),
+    );
     setFeedback(null);
   };
 
@@ -53,9 +63,9 @@ function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
       <div className="hero-card compact">
         <div>
           <p className="eyebrow">Grammar Coach</p>
-          <h2>基礎文法教練</h2>
+          <h2>用關鍵字快速判斷文法</h2>
           <p className="hero-description">
-            不用先背大本語法書，先練 TOEIC 最常考、最容易快速判斷的基本款。
+            這裡的文法題會優先補你最近常錯的題型，並搭配中文解析和解題技巧。
           </p>
         </div>
       </div>
@@ -71,9 +81,9 @@ function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
 
       <div className="quest-card filter-bar">
         <label>
-          題型分類
+          Topic
           <select value={topic} onChange={(event) => setTopic(event.target.value)}>
-            <option value="all">全部</option>
+            <option value="all">All</option>
             {topics.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
@@ -110,13 +120,13 @@ function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
 
         {feedback && (
           <div className={`feedback-panel ${feedback.correct ? "correct" : "wrong"}`}>
-            <strong>{feedback.correct ? "答對了" : "答錯了"}</strong>
-            <p>正確答案：{current.answer}</p>
-            <p>解題關鍵字：{current.keyword}</p>
-            <p>解題技巧：{current.technique}</p>
+            <strong>{feedback.correct ? "Correct" : "Try again"}</strong>
+            <p>Answer: {current.answer}</p>
+            <p>Keyword: {current.keyword}</p>
+            <p>Technique: {current.technique}</p>
             <p>{current.explanationZh}</p>
             <button type="button" className="primary-button" onClick={nextQuestion}>
-              下一題
+              Next Question
             </button>
           </div>
         )}
@@ -126,3 +136,4 @@ function GrammarCoach({ questions, topics, guides, onRecordAnswer }) {
 }
 
 export default GrammarCoach;
+
