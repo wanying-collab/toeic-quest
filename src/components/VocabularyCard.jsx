@@ -14,11 +14,11 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
         </div>
         <button
           type="button"
-          className={`icon-button ${isFavorite ? "active" : ""}`}
+          className={`secondary-button ${isFavorite ? "saved-button" : ""}`}
           onClick={() => onToggleFavorite(word.id)}
           aria-label={isFavorite ? "Remove favorite" : "Add favorite"}
         >
-          {isFavorite ? "★" : "☆"}
+          {isFavorite ? "Saved" : "Save"}
         </button>
       </div>
 
@@ -90,7 +90,7 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
       </div>
 
       <div className="card-actions">
-        <button type="button" className="secondary-button" onClick={() => onSpeak(word.word)}>
+        <button type="button" className="primary-button" onClick={() => onSpeak(word.word)}>
           Play Pronunciation
         </button>
       </div>

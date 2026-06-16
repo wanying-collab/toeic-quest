@@ -279,7 +279,9 @@ pre {
 .card-grid,
 .metric-grid,
 .badge-grid,
-.filter-grid {
+.filter-grid,
+.track-grid,
+.analysis-grid {
   display: grid;
   gap: 16px;
 }
@@ -302,6 +304,14 @@ pre {
 
 .badge-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.track-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.analysis-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .section-heading {
@@ -357,7 +367,8 @@ pre {
 .badge-card,
 .tip-box,
 .bullet-box,
-.mini-card {
+.mini-card,
+.track-card {
   border-radius: 20px;
   background: rgba(248, 253, 255, 0.88);
   border: 1px solid rgba(17, 58, 92, 0.08);
@@ -373,8 +384,19 @@ pre {
 
 .metric-card,
 .badge-card,
-.mini-card {
+.mini-card,
+.track-card {
   padding: 16px;
+}
+
+.track-card {
+  display: grid;
+  gap: 14px;
+}
+
+.saved-button {
+  background: #fff2cf;
+  color: #9c6a00;
 }
 
 .metric-card span,

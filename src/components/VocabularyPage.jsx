@@ -4,6 +4,69 @@ import VocabularyCard from "./VocabularyCard";
 const INITIAL_VISIBLE = 60;
 const VISIBLE_STEP = 60;
 
+const FOCUS_TRACKS = [
+  {
+    id: "manufacturing",
+    title: "Manufacturing English",
+    summary: "Train the factory, quality, routing, and production terms that appear in operations-heavy TOEIC tasks.",
+    categories: ["Manufacturing", "Engineering", "Supply Chain", "Technology"],
+    keywords: [
+      "production",
+      "inventory",
+      "maintenance",
+      "machinery",
+      "assembly",
+      "quality control",
+      "lead time",
+      "routing",
+      "scheduling",
+    ],
+  },
+  {
+    id: "logistics",
+    title: "Logistics English",
+    summary: "Focus on warehouse, shipment, supplier, and procurement language for delivery and trade situations.",
+    categories: ["Logistics", "Supply Chain", "Purchasing", "Travel"],
+    keywords: [
+      "warehouse",
+      "shipment",
+      "supplier",
+      "procurement",
+      "distribution",
+      "inventory control",
+    ],
+  },
+];
+
+function matchesTrackWord(word, trackId) {
+  if (trackId === "all") {
+    return true;
+  }
+
+  const track = FOCUS_TRACKS.find((item) => item.id === trackId);
+  if (!track) {
+    return true;
+  }
+
+  const haystack = [
+    word.word,
+    word.meaning,
+    word.category,
+    ...(word.collocations ?? []),
+    ...(word.synonyms ?? []),
+    ...(word.antonyms ?? []),
+    ...(word.roots ?? []),
+    ...(word.wordFamily ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    track.categories.includes(word.category) ||
+    track.keywords.some((keyword) => haystack.includes(keyword.toLowerCase()))
+  );
+}
+
 function VocabularyPage({
   words,
   phrases,
@@ -23,17 +86,28 @@ function VocabularyPage({
   const [partOfSpeech, setPartOfSpeech] = useState("all");
   const [frequency, setFrequency] = useState("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [trackId, setTrackId] = useState("all");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
   const normalizedEn = searchEn.trim().toLowerCase();
   const normalizedZh = searchZh.trim();
+  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE);
-  }, [tab, searchEn, searchZh, category, level, partOfSpeech, frequency, favoritesOnly]);
+  }, [tab, searchEn, searchZh, category, level, partOfSpeech, frequency, favoritesOnly, trackId]);
 
   const partOfSpeechOptions = useMemo(
     () => [...new Set(words.map((item) => item.partOfSpeech))].sort(),
+    [words],
+  );
+
+  const trackSummaries = useMemo(
+    () =>
+      FOCUS_TRACKS.map((track) => ({
+        ...track,
+        total: words.filter((word) => matchesTrackWord(word, track.id)).length,
+      })),
     [words],
   );
 
@@ -46,7 +120,8 @@ function VocabularyPage({
         const matchesLevel = level === "all" || word.level === level;
         const matchesPartOfSpeech = partOfSpeech === "all" || word.partOfSpeech === partOfSpeech;
         const matchesFrequency = frequency === "all" || String(word.frequency) === String(frequency);
-        const matchesFavorite = !favoritesOnly || favoriteIds.includes(word.id);
+        const matchesFavorite = !favoritesOnly || favoriteSet.has(word.id);
+        const matchesTrack = matchesTrackWord(word, trackId);
 
         return (
           matchesEnglish &&
@@ -55,7 +130,8 @@ function VocabularyPage({
           matchesLevel &&
           matchesPartOfSpeech &&
           matchesFrequency &&
-          matchesFavorite
+          matchesFavorite &&
+          matchesTrack
         );
       }),
     [
@@ -67,7 +143,8 @@ function VocabularyPage({
       partOfSpeech,
       frequency,
       favoritesOnly,
-      favoriteIds,
+      favoriteSet,
+      trackId,
     ],
   );
 
@@ -103,6 +180,19 @@ function VocabularyPage({
   const visibleWords = filteredWords.slice(0, visibleCount);
   const visiblePhrases = filteredPhrases.slice(0, visibleCount);
   const visiblePatterns = filteredPatterns.slice(0, visibleCount);
+  const activeTrack = trackSummaries.find((item) => item.id === trackId) ?? null;
+
+  const applyTrack = (nextTrackId) => {
+    setTab("words");
+    setTrackId(nextTrackId);
+    setFavoritesOnly(false);
+    setCategory("all");
+    setLevel("all");
+    setPartOfSpeech("all");
+    setFrequency("all");
+    setSearchEn("");
+    setSearchZh("");
+  };
 
   return (
     <section className="page-shell">
@@ -133,6 +223,51 @@ function VocabularyPage({
           </div>
         </div>
       </div>
+
+      {tab === "words" && (
+        <div className="track-grid">
+          {trackSummaries.map((track) => (
+            <article key={track.id} className="quest-card track-card">
+              <p className="eyebrow">Focus Track</p>
+              <h3>{track.title}</h3>
+              <p>{track.summary}</p>
+              <div className="hero-badges">
+                {track.keywords.map((keyword) => (
+                  <span key={keyword} className="pill">
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+              <div className="card-row">
+                <span className="muted">{track.total.toLocaleString()} matching words</span>
+                <button
+                  type="button"
+                  className={`primary-button ${trackId === track.id ? "is-selected" : ""}`}
+                  onClick={() => applyTrack(track.id)}
+                >
+                  {trackId === track.id ? "Using This Track" : "Open Track"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {tab === "words" && activeTrack && (
+        <div className="quest-card">
+          <div className="card-row">
+            <div>
+              <strong>Current Focus Track: {activeTrack.title}</strong>
+              <p className="muted">
+                {activeTrack.summary}
+              </p>
+            </div>
+            <button type="button" className="secondary-button" onClick={() => setTrackId("all")}>
+              Clear Track
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="filter-bar quest-card">
         <div className="tabs">
@@ -167,7 +302,7 @@ function VocabularyPage({
             <input
               value={searchZh}
               onChange={(event) => setSearchZh(event.target.value)}
-              placeholder="發票 / 物流 / 庫存"
+              placeholder="meaning in Chinese"
             />
           </label>
 
@@ -177,7 +312,7 @@ function VocabularyPage({
               <option value="all">All</option>
               {categories.map((item) => (
                 <option key={item.id} value={item.label}>
-                  {item.label} / {item.labelZh}
+                  {item.label}
                 </option>
               ))}
             </select>
@@ -219,6 +354,18 @@ function VocabularyPage({
             </select>
           </label>
 
+          <label>
+            Focus Track
+            <select value={trackId} onChange={(event) => setTrackId(event.target.value)}>
+              <option value="all">All</option>
+              {trackSummaries.map((track) => (
+                <option key={track.id} value={track.id}>
+                  {track.title}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="checkbox-line">
             <input
               type="checkbox"
@@ -248,7 +395,7 @@ function VocabularyPage({
               <VocabularyCard
                 key={word.id}
                 word={word}
-                isFavorite={favoriteIds.includes(word.id)}
+                isFavorite={favoriteSet.has(word.id)}
                 progress={wordProgress[word.id]}
                 onToggleFavorite={onToggleFavorite}
                 onSpeak={onSpeak}
@@ -275,82 +422,82 @@ function VocabularyPage({
 
       {tab === "phrases" && (
         <>
-        <div className="card-grid">
-          {visiblePhrases.map((phrase) => (
-            <article key={phrase.id} className="quest-card resource-card">
-              <div className="card-topline">
-                <div>
-                  <p className="eyebrow">{phrase.category}</p>
-                  <h3>{phrase.phrase}</h3>
+          <div className="card-grid">
+            {visiblePhrases.map((phrase) => (
+              <article key={phrase.id} className="quest-card resource-card">
+                <div className="card-topline">
+                  <div>
+                    <p className="eyebrow">{phrase.category}</p>
+                    <h3>{phrase.phrase}</h3>
+                  </div>
+                  <button type="button" className="secondary-button" onClick={() => onSpeak(phrase.phrase)}>
+                    Play
+                  </button>
                 </div>
-                <button type="button" className="icon-button" onClick={() => onSpeak(phrase.phrase)}>
-                  ▶
+                <p className="word-meaning">{phrase.meaning}</p>
+                <p>{phrase.tip}</p>
+                <p className="word-example">{phrase.example}</p>
+                <p className="word-example-zh">{phrase.exampleZh}</p>
+              </article>
+            ))}
+          </div>
+          {visibleCount < filteredPhrases.length && (
+            <div className="quest-card">
+              <div className="card-row">
+                <span>{(filteredPhrases.length - visiblePhrases.length).toLocaleString()} more phrases available</span>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
+                >
+                  Load 60 More
                 </button>
               </div>
-              <p className="word-meaning">{phrase.meaning}</p>
-              <p>{phrase.tip}</p>
-              <p className="word-example">{phrase.example}</p>
-              <p className="word-example-zh">{phrase.exampleZh}</p>
-            </article>
-          ))}
-        </div>
-        {visibleCount < filteredPhrases.length && (
-          <div className="quest-card">
-            <div className="card-row">
-              <span>{(filteredPhrases.length - visiblePhrases.length).toLocaleString()} more phrases available</span>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
-              >
-                Load 60 More
-              </button>
             </div>
-          </div>
-        )}
+          )}
         </>
       )}
 
       {tab === "patterns" && (
         <>
-        <div className="card-grid">
-          {visiblePatterns.map((pattern) => (
-            <article key={pattern.id} className="quest-card resource-card">
-              <div className="card-topline">
-                <div>
-                  <p className="eyebrow">
-                    {pattern.category} / {pattern.difficulty.toUpperCase()}
-                  </p>
-                  <h3>{pattern.pattern}</h3>
+          <div className="card-grid">
+            {visiblePatterns.map((pattern) => (
+              <article key={pattern.id} className="quest-card resource-card">
+                <div className="card-topline">
+                  <div>
+                    <p className="eyebrow">
+                      {pattern.category} / {pattern.difficulty.toUpperCase()}
+                    </p>
+                    <h3>{pattern.pattern}</h3>
+                  </div>
+                  <button type="button" className="secondary-button" onClick={() => onSpeak(pattern.example)}>
+                    Play
+                  </button>
                 </div>
-                <button type="button" className="icon-button" onClick={() => onSpeak(pattern.example)}>
-                  ▶
+                <p>{pattern.explanation}</p>
+                <p className="word-example">{pattern.example}</p>
+                <p className="word-example-zh">{pattern.exampleZh}</p>
+                <div className="tip-box">
+                  <strong>Quick tip</strong>
+                  <p>{pattern.tip}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          {visibleCount < filteredPatterns.length && (
+            <div className="quest-card">
+              <div className="card-row">
+                <span>{(filteredPatterns.length - visiblePatterns.length).toLocaleString()} more patterns available</span>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
+                >
+                  Load 60 More
                 </button>
               </div>
-              <p>{pattern.explanation}</p>
-              <p className="word-example">{pattern.example}</p>
-              <p className="word-example-zh">{pattern.exampleZh}</p>
-              <div className="tip-box">
-                <strong>Quick tip</strong>
-                <p>{pattern.tip}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-        {visibleCount < filteredPatterns.length && (
-          <div className="quest-card">
-            <div className="card-row">
-              <span>{(filteredPatterns.length - visiblePatterns.length).toLocaleString()} more patterns available</span>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => setVisibleCount((value) => value + VISIBLE_STEP)}
-              >
-                Load 60 More
-              </button>
             </div>
-          </div>
-        )}
+          )}
         </>
       )}
     </section>
