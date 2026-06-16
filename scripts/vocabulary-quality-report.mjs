@@ -1,5 +1,6 @@
 import {
   vocabularyBank,
+  vocabularyDataSources,
   vocabularyLibraryMeta,
   vocabularyQualityReport,
 } from "../src/data/vocabulary/index.js";
@@ -15,6 +16,7 @@ const report = {
   removedFakeData: vocabularyQualityReport.removedFakeData,
   vocabularyQualityScore: vocabularyQualityReport.vocabularyQualityScore,
   levelCounts: vocabularyLibraryMeta.levelCounts,
+  dataSources: vocabularyDataSources,
 };
 
 console.log(JSON.stringify(report, null, 2));
