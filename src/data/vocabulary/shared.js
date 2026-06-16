@@ -32,7 +32,7 @@ export const vocabularyLevels = [
   { id: "normal", label: "Level 2 Normal 350-470", target: 1800, milestone: 3000 },
   { id: "green", label: "Level 3 Green 470-550", target: 1800, milestone: 4800 },
   { id: "blue", label: "Level 4 Blue 550-730", target: 1800, milestone: 6600 },
-  { id: "advanced", label: "Level 5 Advanced 730+", target: 1600, milestone: 8200 },
+  { id: "advanced", label: "Level 5 Advanced 730+", target: 1800, milestone: 8200 },
 ];
 
 export const vocabularyFrequencyOptions = [5, 4, 3, 2, 1];
@@ -76,7 +76,6 @@ const extraSeedEntries = [
   ["mortgage", "房貸", "noun", "Banking", 4],
   ["portfolio", "投資組合", "noun", "Banking", 4],
   ["dividend", "股利", "noun", "Finance", 4],
-  ["invoice", "發票", "noun", "Accounting", 5],
   ["ledger", "分類帳", "noun", "Accounting", 4],
   ["payroll", "薪資表", "noun", "Human Resources", 5],
   ["headcount", "員工人數", "noun", "Human Resources", 4],
@@ -137,10 +136,159 @@ const extraSeedEntries = [
   ["minutes", "會議紀錄", "noun", "Meeting", 4],
   ["presentation", "簡報", "noun", "Meeting", 5],
   ["deadline", "截止期限", "noun", "Office", 5],
-  ["schedule", "行程表", "noun", "Office", 5],
   ["workstation", "工作站", "noun", "Office", 3],
   ["stationery", "文具", "noun", "Office", 3],
   ["filing", "歸檔", "noun", "Office", 3],
+];
+
+const lexicalProfiles = {
+  acquisition: {
+    synonyms: ["purchase", "takeover", "buyout"],
+    antonyms: ["divestment", "sale"],
+    roots: ["ac- = toward", "quis = seek or gain"],
+    wordFamily: ["acquire", "acquired", "acquiring", "acquisition"],
+  },
+  produce: {
+    synonyms: ["manufacture", "create", "generate"],
+    antonyms: ["consume", "destroy"],
+    roots: ["pro- = forward", "duc = lead or bring"],
+    wordFamily: ["produce", "product", "production", "productive", "productivity", "producer"],
+  },
+  shipment: {
+    synonyms: ["delivery", "consignment", "cargo"],
+    antonyms: ["pickup", "return"],
+    roots: ["ship = transport", "-ment = result or process"],
+    wordFamily: ["ship", "shipment", "shipping", "shipper"],
+  },
+  inventory: {
+    synonyms: ["stock", "supply", "goods"],
+    antonyms: ["shortage", "depletion"],
+    roots: ["invent = find or list", "-ory = related to"],
+    wordFamily: ["inventory", "inventories", "inventory control"],
+  },
+  maintenance: {
+    synonyms: ["upkeep", "repair", "servicing"],
+    antonyms: ["neglect", "damage"],
+    roots: ["main = hand", "ten = hold"],
+    wordFamily: ["maintain", "maintenance", "maintained", "maintaining"],
+  },
+  benchmarking: {
+    synonyms: ["comparison", "evaluation", "measurement"],
+    antonyms: ["guesswork", "neglect"],
+    roots: ["bench = standard", "mark = sign"],
+    wordFamily: ["benchmark", "benchmarks", "benchmarking"],
+  },
+  commercialization: {
+    synonyms: ["marketing", "launch", "monetization"],
+    antonyms: ["withdrawal", "closure"],
+    roots: ["commerci = trade", "-ization = process"],
+    wordFamily: ["commercial", "commercialize", "commercialized", "commercialization"],
+  },
+  stakeholder: {
+    synonyms: ["participant", "partner", "interested party"],
+    antonyms: ["outsider", "bystander"],
+    roots: ["stake = share or interest", "hold = keep"],
+    wordFamily: ["stake", "stakeholder", "stakeholders"],
+  },
+  amortization: {
+    synonyms: ["write-off", "allocation", "expense spread"],
+    antonyms: ["accumulation", "increase"],
+    roots: ["mort = death or end", "-ization = process"],
+    wordFamily: ["amortize", "amortized", "amortizing", "amortization"],
+  },
+  depreciation: {
+    synonyms: ["decline", "devaluation", "reduction"],
+    antonyms: ["appreciation", "increase"],
+    roots: ["de- = down", "preti = value"],
+    wordFamily: ["depreciate", "depreciated", "depreciation"],
+  },
+  equity: {
+    synonyms: ["ownership", "capital", "fairness"],
+    antonyms: ["debt", "liability"],
+    roots: ["equi = equal"],
+    wordFamily: ["equal", "equity", "equitable", "equitably"],
+  },
+  liability: {
+    synonyms: ["debt", "obligation", "responsibility"],
+    antonyms: ["asset", "advantage"],
+    roots: ["li = bind", "-ity = state"],
+    wordFamily: ["liable", "liability", "liabilities"],
+  },
+  procurement: {
+    synonyms: ["purchasing", "sourcing", "buying"],
+    antonyms: ["disposal", "sale"],
+    roots: ["pro- = forward", "cure = obtain"],
+    wordFamily: ["procure", "procured", "procuring", "procurement"],
+  },
+  specification: {
+    synonyms: ["standard", "requirement", "detail"],
+    antonyms: ["guess", "uncertainty"],
+    roots: ["spec = look or detail", "-ation = process"],
+    wordFamily: ["specific", "specify", "specified", "specification"],
+  },
+  renovation: {
+    synonyms: ["remodeling", "restoration", "upgrade"],
+    antonyms: ["damage", "decline"],
+    roots: ["re- = again", "nov = new"],
+    wordFamily: ["renovate", "renovated", "renovating", "renovation"],
+  },
+  prescription: {
+    synonyms: ["medication order", "doctor's order", "treatment order"],
+    antonyms: ["prohibition", "restriction"],
+    roots: ["pre- = before", "script = write"],
+    wordFamily: ["prescribe", "prescribed", "prescription"],
+  },
+  itinerary: {
+    synonyms: ["schedule", "travel plan", "route"],
+    antonyms: ["cancellation", "delay"],
+    roots: ["iter = journey"],
+    wordFamily: ["itinerary", "itineraries"],
+  },
+  hospitality: {
+    synonyms: ["service", "guest care", "welcome"],
+    antonyms: ["rudeness", "neglect"],
+    roots: ["hospit = guest"],
+    wordFamily: ["host", "hospitality", "hospitable"],
+  },
+  schedule: {
+    synonyms: ["timetable", "agenda", "plan"],
+    antonyms: ["delay", "disorder"],
+    roots: ["sched = plan"],
+    wordFamily: ["schedule", "scheduled", "scheduling"],
+  },
+  warehouse: {
+    synonyms: ["storage", "depot", "distribution center"],
+    antonyms: ["showroom", "storefront"],
+    roots: ["ware = goods", "house = place"],
+    wordFamily: ["warehouse", "warehouses", "warehousing"],
+  },
+  supplier: {
+    synonyms: ["vendor", "provider", "seller"],
+    antonyms: ["buyer", "customer"],
+    roots: ["sup- = support", "ply = fill"],
+    wordFamily: ["supply", "supplier", "supplied", "supplying"],
+  },
+};
+
+const rootProfiles = [
+  { match: "tion", note: "-tion = act, process, or result" },
+  { match: "sion", note: "-sion = act or condition" },
+  { match: "ment", note: "-ment = result or process" },
+  { match: "log", note: "log = study, word, or system" },
+  { match: "port", note: "port = carry" },
+  { match: "tract", note: "tract = pull or draw" },
+  { match: "spect", note: "spect = look" },
+  { match: "struct", note: "struct = build" },
+  { match: "dict", note: "dict = say or speak" },
+  { match: "script", note: "script = write" },
+  { match: "graph", note: "graph = write or record" },
+  { match: "auto", note: "auto- = self" },
+  { match: "inter", note: "inter- = between" },
+  { match: "trans", note: "trans- = across" },
+  { match: "sub", note: "sub- = under" },
+  { match: "pre", note: "pre- = before" },
+  { match: "pro", note: "pro- = forward or for" },
+  { match: "re", note: "re- = again or back" },
 ];
 
 const normalizedExtraSeeds = extraSeedEntries.map(
@@ -171,7 +319,7 @@ const legacyNormalized = legacyVocabularyBank.map((entry, index) => ({
 
 const dedupedSeedMap = new Map();
 [...legacyNormalized, ...normalizedExtraSeeds].forEach((entry) => {
-  const key = entry.word.toLowerCase();
+  const key = String(entry.word).toLowerCase();
   if (!dedupedSeedMap.has(key)) {
     dedupedSeedMap.set(key, entry);
   }
@@ -180,12 +328,7 @@ const dedupedSeedMap = new Map();
 const baseSeeds = [...dedupedSeedMap.values()];
 
 const categoryRotations = {
-  "Corporate Development": [
-    "Corporate Development",
-    "Business",
-    "Finance",
-    "Project Management",
-  ],
+  "Corporate Development": ["Corporate Development", "Business", "Finance", "Project Management"],
   Office: ["Office", "Meeting", "Business", "Human Resources"],
   Meeting: ["Meeting", "Office", "Project Management", "Business"],
   Business: ["Business", "Corporate Development", "Sales", "Marketing"],
@@ -196,12 +339,7 @@ const categoryRotations = {
   "Supply Chain": ["Supply Chain", "Logistics", "Manufacturing", "Purchasing"],
   Manufacturing: ["Manufacturing", "Engineering", "Supply Chain", "Technology"],
   Engineering: ["Engineering", "Manufacturing", "Technology", "Project Management"],
-  "Project Management": [
-    "Project Management",
-    "Corporate Development",
-    "Engineering",
-    "Meeting",
-  ],
+  "Project Management": ["Project Management", "Corporate Development", "Engineering", "Meeting"],
   "Customer Service": ["Customer Service", "Sales", "Business", "Dining"],
   Marketing: ["Marketing", "Sales", "Business", "Technology"],
   Sales: ["Sales", "Marketing", "Customer Service", "Business"],
@@ -325,15 +463,76 @@ function defaultCollocations(word, partOfSpeech) {
   return [`review the ${word}`, `update the ${word}`];
 }
 
+function normalizeHeadword(word) {
+  return String(word).split(" ")[0].toLowerCase();
+}
+
+function buildSynonyms(seed, categoryLabel) {
+  const headword = normalizeHeadword(seed.word);
+  if (lexicalProfiles[headword]?.synonyms) {
+    return lexicalProfiles[headword].synonyms;
+  }
+
+  const peers = baseSeeds
+    .filter((item) => item.category === categoryLabel && normalizeHeadword(item.word) !== headword)
+    .slice(0, 3)
+    .map((item) => normalizeHeadword(item.word));
+
+  return [...new Set(peers)];
+}
+
+function buildAntonyms(seed) {
+  const headword = normalizeHeadword(seed.word);
+  if (lexicalProfiles[headword]?.antonyms) {
+    return lexicalProfiles[headword].antonyms;
+  }
+
+  if (headword.includes("increase")) {
+    return ["decrease", "decline"];
+  }
+  if (headword.includes("import")) {
+    return ["export"];
+  }
+  if (headword.includes("approval")) {
+    return ["rejection"];
+  }
+
+  return [];
+}
+
+function buildRoots(seed) {
+  const headword = normalizeHeadword(seed.word);
+  if (lexicalProfiles[headword]?.roots) {
+    return lexicalProfiles[headword].roots;
+  }
+
+  const matchedRoots = rootProfiles
+    .filter((profile) => headword.includes(profile.match))
+    .slice(0, 2)
+    .map((profile) => profile.note);
+
+  return matchedRoots.length > 0 ? matchedRoots : [`${headword.slice(0, 4)} = core business stem`];
+}
+
+function buildWordFamily(seed) {
+  const headword = normalizeHeadword(seed.word);
+  if (lexicalProfiles[headword]?.wordFamily) {
+    return lexicalProfiles[headword].wordFamily;
+  }
+
+  const trimmed = headword.replace(/e$/, "");
+  const family = [headword, `${trimmed}ing`, `${headword}er`, `${trimmed}ed`];
+  return [...new Set(family)].slice(0, 5);
+}
+
 function resolveExample(word, partOfSpeech, sequence) {
   const templates = partOfSpeech.startsWith("verb") ? phraseSentenceTemplates : nounSentenceTemplates;
   const example = templates[sequence % templates.length](word);
   return {
     example,
-    exampleZh:
-      partOfSpeech.startsWith("verb")
-        ? `團隊本季更仔細地處理 ${word}。`
-        : `團隊在客戶來電前檢查了 ${word}。`,
+    exampleZh: partOfSpeech.startsWith("verb")
+      ? `團隊本季更仔細地處理 ${word}。`
+      : `團隊在客戶來電前檢查了 ${word}。`,
   };
 }
 
@@ -353,6 +552,10 @@ function buildVariant(seed, variant, level, slotIndex, sequence, idNumber) {
     example,
     exampleZh,
     collocations: seed.collocations.length ? seed.collocations : defaultCollocations(word, partOfSpeech),
+    synonyms: buildSynonyms(seed, category.label),
+    antonyms: buildAntonyms(seed),
+    roots: buildRoots(seed),
+    wordFamily: buildWordFamily(seed),
     category: category.label,
     level,
     frequency: variant.frequency ?? seed.frequency ?? 3,

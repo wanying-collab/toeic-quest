@@ -40,6 +40,50 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
         </ul>
       </div>
 
+      {word.synonyms?.length > 0 && (
+        <div className="word-collocations">
+          <strong>Synonyms</strong>
+          <ul>
+            {word.synonyms.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {word.antonyms?.length > 0 && (
+        <div className="word-collocations">
+          <strong>Antonyms</strong>
+          <ul>
+            {word.antonyms.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {word.roots?.length > 0 && (
+        <div className="word-collocations">
+          <strong>Roots / Prefixes</strong>
+          <ul>
+            {word.roots.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {word.wordFamily?.length > 0 && (
+        <div className="word-collocations">
+          <strong>Word Family</strong>
+          <ul>
+            {word.wordFamily.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="card-row stats-row">
         <span>Wrong count {progress?.wrongCount ?? 0}</span>
         <span>{progress?.mastered ? "Mastered" : `Next review ${nextReviewText}`}</span>
@@ -55,4 +99,3 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
 }
 
 export default VocabularyCard;
-

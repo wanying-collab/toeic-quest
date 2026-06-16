@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(value, max));
 }
 
 function buildExamItems(listeningQuestions, grammarQuestions, readingQuestions) {
-  const listeningItems = listeningQuestions.slice(0, 8).map((item) => ({
+  const listeningItems = listeningQuestions.slice(0, 10).map((item) => ({
     id: `mock-${item.id}`,
     domain: "listening",
     title: `Listening / Level ${item.level}`,
@@ -15,9 +15,10 @@ function buildExamItems(listeningQuestions, grammarQuestions, readingQuestions) 
     options: item.options,
     answer: item.answer,
     explanationZh: item.explanationZh,
+    trapAnalysis: item.trapAnalysis,
   }));
 
-  const grammarItems = grammarQuestions.slice(0, 6).map((item) => ({
+  const grammarItems = grammarQuestions.slice(0, 8).map((item) => ({
     id: `mock-${item.id}`,
     domain: "grammar",
     title: "Grammar",
@@ -26,20 +27,38 @@ function buildExamItems(listeningQuestions, grammarQuestions, readingQuestions) 
     options: item.options,
     answer: item.answer,
     explanationZh: item.explanationZh,
+    trapAnalysis: item.technique,
   }));
 
-  const readingItems = readingQuestions.slice(0, 6).map((item) => ({
-    id: `mock-${item.id}`,
-    domain: "reading",
-    title: item.type,
-    prompt: item.questions[0].question,
-    context: item.text,
-    options: item.questions[0].options,
-    answer: item.questions[0].answer,
-    explanationZh: item.questions[0].explanationZh,
-  }));
+  const readingItems = readingQuestions.slice(0, 8).map((item) => {
+    const firstQuestion = item.questions[0];
+    return {
+      id: `mock-${firstQuestion.id}`,
+      domain: "reading",
+      title: item.type,
+      prompt: firstQuestion.question,
+      context: item.text,
+      options: firstQuestion.options,
+      answer: firstQuestion.answer,
+      explanationZh: firstQuestion.explanationZh,
+      trapAnalysis: item.strategy,
+    };
+  });
 
   return [...listeningItems, ...grammarItems, ...readingItems];
+}
+
+function buildSectionStats(examItems, answers) {
+  return ["listening", "grammar", "reading"].map((domain) => {
+    const items = examItems.filter((item) => item.domain === domain);
+    const correct = items.filter((item) => answers[item.id] === item.answer).length;
+    return {
+      domain,
+      correct,
+      total: items.length,
+      accuracy: Math.round((correct / items.length) * 100),
+    };
+  });
 }
 
 function MockExam({
@@ -58,30 +77,65 @@ function MockExam({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [mockResult, setMockResult] = useState(null);
+
+  useEffect(() => {
+    if (!started || finished) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setElapsedSeconds((value) => value + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [started, finished]);
 
   const current = examItems[currentIndex];
 
   const finishExam = () => {
-    setFinished(true);
-    const listeningItems = examItems.filter((item) => item.domain === "listening");
-    const grammarItems = examItems.filter((item) => item.domain === "grammar");
-    const readingItems = examItems.filter((item) => item.domain === "reading");
-
-    const countCorrect = (items) =>
-      items.filter((item) => answers[item.id] && answers[item.id] === item.answer).length;
-
-    const listeningAccuracy = countCorrect(listeningItems) / listeningItems.length;
-    const grammarAccuracy = countCorrect(grammarItems) / grammarItems.length;
-    const readingAccuracy = countCorrect(readingItems) / readingItems.length;
-    const totalCorrect = countCorrect(examItems);
+    const sectionStats = buildSectionStats(examItems, answers);
+    const totalCorrect = examItems.filter((item) => answers[item.id] === item.answer).length;
     const overall = totalCorrect / examItems.length;
-    const predicted = clamp(
-      Math.round(255 + overall * 320 + listeningAccuracy * 120 + grammarAccuracy * 70 + readingAccuracy * 90),
+    const listeningAccuracy = sectionStats.find((item) => item.domain === "listening")?.accuracy ?? 0;
+    const grammarAccuracy = sectionStats.find((item) => item.domain === "grammar")?.accuracy ?? 0;
+    const readingAccuracy = sectionStats.find((item) => item.domain === "reading")?.accuracy ?? 0;
+
+    const score = clamp(
+      Math.round(
+        255 +
+          overall * 310 +
+          (listeningAccuracy / 100) * 135 +
+          (grammarAccuracy / 100) * 80 +
+          (readingAccuracy / 100) * 120,
+      ),
       255,
       990,
     );
 
-    onSaveMockTest(predicted);
+    const wrongItems = examItems
+      .filter((item) => answers[item.id] !== item.answer)
+      .map((item) => ({
+        ...item,
+        userAnswer: answers[item.id] ?? "(no answer)",
+      }));
+
+    const weakestSection = [...sectionStats].sort((a, b) => a.accuracy - b.accuracy)[0];
+
+    const result = {
+      score,
+      overallAccuracy: Math.round(overall * 100),
+      elapsedSeconds,
+      sectionStats,
+      wrongItems,
+      weakestSection,
+      date: new Date().toISOString(),
+    };
+
+    setMockResult(result);
+    setFinished(true);
+    onSaveMockTest(result);
   };
 
   if (!started) {
@@ -90,9 +144,9 @@ function MockExam({
         <div className="hero-card compact">
           <div>
             <p className="eyebrow">Mini Mock TOEIC</p>
-            <h2>Take a mixed practice exam</h2>
+            <h2>Take a timed mixed practice exam</h2>
             <p className="hero-description">
-              This mini mock mixes listening, grammar, and reading. When you finish, the score will feed back into the AI score predictor.
+              This mock includes separate listening, grammar, and reading blocks. When you finish, the score and analysis go back into the AI predictor.
             </p>
           </div>
         </div>
@@ -105,18 +159,29 @@ function MockExam({
             </div>
             <div className="metric-card">
               <span>Listening</span>
-              <strong>8</strong>
+              <strong>10</strong>
             </div>
             <div className="metric-card">
               <span>Grammar</span>
-              <strong>6</strong>
+              <strong>8</strong>
             </div>
             <div className="metric-card">
               <span>Reading</span>
-              <strong>6</strong>
+              <strong>8</strong>
             </div>
           </div>
-          <button type="button" className="primary-button" onClick={() => setStarted(true)}>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => {
+              setStarted(true);
+              setFinished(false);
+              setCurrentIndex(0);
+              setAnswers({});
+              setElapsedSeconds(0);
+              setMockResult(null);
+            }}
+          >
             Start Mini Mock
           </button>
         </article>
@@ -124,38 +189,40 @@ function MockExam({
     );
   }
 
-  if (finished) {
-    const totalCorrect = examItems.filter((item) => answers[item.id] === item.answer).length;
-    const overall = totalCorrect / examItems.length;
-    const score = clamp(Math.round(255 + overall * 320), 255, 990);
-
-    const sectionStats = ["listening", "grammar", "reading"].map((domain) => {
-      const items = examItems.filter((item) => item.domain === domain);
-      const correct = items.filter((item) => answers[item.id] === item.answer).length;
-      return {
-        domain,
-        correct,
-        total: items.length,
-        accuracy: Math.round((correct / items.length) * 100),
-      };
-    });
-
-    const weakest = [...sectionStats].sort((a, b) => a.accuracy - b.accuracy)[0];
-
+  if (finished && mockResult) {
     return (
       <section className="page-shell">
         <div className="hero-card compact">
           <div>
             <p className="eyebrow">Mini Mock Result</p>
-            <h2>Your estimated mini-mock score: {score}</h2>
+            <h2>Your estimated mock score: {mockResult.score}</h2>
             <p className="hero-description">
-              This result has already been saved into your score history and will affect the predicted TOEIC score.
+              This result has already been saved into your score history and now affects the TOEIC prediction.
             </p>
           </div>
         </div>
 
         <div className="metric-grid">
-          {sectionStats.map((item) => (
+          <div className="metric-card">
+            <span>Overall Accuracy</span>
+            <strong>{mockResult.overallAccuracy}%</strong>
+          </div>
+          <div className="metric-card">
+            <span>Time Used</span>
+            <strong>{mockResult.elapsedSeconds}s</strong>
+          </div>
+          <div className="metric-card">
+            <span>Weakest Section</span>
+            <strong>{mockResult.weakestSection.domain}</strong>
+          </div>
+          <div className="metric-card">
+            <span>Wrong Items</span>
+            <strong>{mockResult.wrongItems.length}</strong>
+          </div>
+        </div>
+
+        <div className="metric-grid">
+          {mockResult.sectionStats.map((item) => (
             <div key={item.domain} className="metric-card">
               <span>{item.domain}</span>
               <strong>
@@ -167,10 +234,36 @@ function MockExam({
         </div>
 
         <article className="quest-card">
-          <h3>Weakest section</h3>
+          <h3>Weakness Analysis</h3>
           <p>
-            {weakest.domain} is your current weakest section in this mini mock. Use it to guide your next focused block.
+            Your weakest section is <strong>{mockResult.weakestSection.domain}</strong>. That section should be your next focused study block.
           </p>
+          <p>
+            The result combines section accuracy, overall accuracy, and exam pacing to estimate a TOEIC-like mock score.
+          </p>
+        </article>
+
+        <article className="quest-card">
+          <h3>Mistake Analysis</h3>
+          {mockResult.wrongItems.length === 0 ? (
+            <p>Excellent. You answered every mini-mock question correctly.</p>
+          ) : (
+            <div className="stack-gap">
+              {mockResult.wrongItems.map((item) => (
+                <div key={item.id} className="tip-box">
+                  <strong>{item.title}</strong>
+                  <p>Question: {item.prompt}</p>
+                  <p>Your answer: {item.userAnswer}</p>
+                  <p>Correct answer: {item.answer}</p>
+                  <p>Explanation: {item.explanationZh}</p>
+                  <p>How to improve: {item.trapAnalysis}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="quest-card">
           <div className="card-row">
             <button
               type="button"
@@ -180,6 +273,8 @@ function MockExam({
                 setFinished(false);
                 setCurrentIndex(0);
                 setAnswers({});
+                setElapsedSeconds(0);
+                setMockResult(null);
               }}
             >
               Retake Mini Mock
@@ -198,7 +293,9 @@ function MockExam({
           <h2>
             Question {currentIndex + 1} / {examItems.length}
           </h2>
-          <p className="hero-description">{current.title}</p>
+          <p className="hero-description">
+            {current.title} / Elapsed Time: {elapsedSeconds}s
+          </p>
         </div>
       </div>
 

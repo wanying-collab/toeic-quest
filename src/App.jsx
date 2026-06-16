@@ -191,11 +191,16 @@ function buildStats(state) {
     (item) => !item.mastered && item.nextReviewAt && item.nextReviewAt <= today,
   ).length;
 
-  const latestMockScore = state.mockTests.at(-1)?.score ?? 0;
+  const latestMock = state.mockTests.at(-1) ?? null;
+  const latestMockScore = latestMock?.score ?? 0;
   const vocabularyFactor = clamp(learnedWords / 2000, 0, 1);
+  const masteryFactor = clamp(masteredWords / 1000, 0, 1);
+  const practiceFactor = clamp(state.answerLog.length / 1500, 0, 1);
   const baseModel = Math.round(
     255 +
       vocabularyFactor * 220 +
+      masteryFactor * 90 +
+      practiceFactor * 55 +
       accuracy.listening * 170 +
       accuracy.reading * 135 +
       accuracy.grammar * 110 +
@@ -229,6 +234,7 @@ function buildStats(state) {
     xp: state.xp,
     streak: state.streak,
     latestMockScore,
+    latestMock,
   };
 }
 
@@ -403,10 +409,15 @@ function App() {
     setState((current) => ensureDailyEngagement(current));
   };
 
-  const saveMockTest = (score) => {
+  const saveMockTest = (result) => {
+    const payload =
+      typeof result === "number"
+        ? { score: result, date: new Date().toISOString() }
+        : { ...result, date: result.date ?? new Date().toISOString() };
+
     setState((current) => ({
       ...ensureDailyEngagement(current),
-      mockTests: [...current.mockTests, { score, date: new Date().toISOString() }].slice(-20),
+      mockTests: [...current.mockTests, payload].slice(-20),
     }));
   };
 

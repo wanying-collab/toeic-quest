@@ -78,15 +78,15 @@ export function pickAdaptiveItem(items, profile, config = {}) {
     const mistakeCount = profile.mistakeCounts?.[itemId] ?? 0;
 
     if (recentItemCount > 0) {
-      weight *= 0.12;
+      weight *= 0.04;
     }
 
     if (recentWordCount > 0) {
-      weight *= 0.25;
+      weight *= 0.15;
     }
 
     if (recentWrongWordCount > 0) {
-      weight *= 1.8 + recentWrongWordCount * 0.5;
+      weight *= 2.2 + recentWrongWordCount * 0.55;
     }
 
     if (recentCorrectWordCount > 0) {
@@ -114,4 +114,3 @@ export function pickAdaptiveItem(items, profile, config = {}) {
     return weight;
   });
 }
-

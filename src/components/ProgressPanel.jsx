@@ -62,6 +62,10 @@ function ProgressPanel({
               <span>Latest Mock</span>
               <strong>{stats.latestMockScore || "--"}</strong>
             </div>
+            <div className="metric-card">
+              <span>Study Progress</span>
+              <strong>{stats.totalAnswers}</strong>
+            </div>
           </div>
 
           <div className="stack-gap">
@@ -106,6 +110,8 @@ function ProgressPanel({
                 <div key={item.date + item.score} className="review-item">
                   <strong>{item.score}</strong>
                   <p>{new Date(item.date).toLocaleDateString("zh-TW")}</p>
+                  {item.elapsedSeconds ? <p>Time {item.elapsedSeconds}s</p> : null}
+                  {item.weakestSection ? <p>Weakest {item.weakestSection.domain}</p> : null}
                 </div>
               ))
             )}
@@ -205,4 +211,3 @@ function ProgressPanel({
 }
 
 export default ProgressPanel;
-
