@@ -23,6 +23,7 @@ import {
 import {
   vocabularyBank,
   vocabularyCategories,
+  vocabularyIdAliases,
   vocabularyLevels,
   vocabularyThemes,
 } from "./data/vocabulary/index.js";
@@ -63,6 +64,8 @@ const INITIAL_STATE = {
   mockTests: [],
 };
 
+const VOCAB_MODES = ["en-zh", "zh-en", "audio-zh", "audio-en", "spelling"];
+
 function getTodayKey() {
   const now = new Date();
   const year = now.getFullYear();
@@ -89,6 +92,110 @@ function diffDays(from, to) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(value, max));
+}
+
+function normalizeWordId(wordId) {
+  if (!wordId) {
+    return wordId;
+  }
+
+  return vocabularyIdAliases[wordId] ?? wordId;
+}
+
+function normalizeVocabularyItemId(itemId) {
+  if (!itemId) {
+    return itemId;
+  }
+
+  for (const mode of VOCAB_MODES) {
+    const prefix = `vocab-${mode}-`;
+    if (itemId.startsWith(prefix)) {
+      const rawWordId = itemId.slice(prefix.length);
+      return `${prefix}${normalizeWordId(rawWordId)}`;
+    }
+  }
+
+  return itemId;
+}
+
+function mergeReviewEntries(base = {}, incoming = {}) {
+  const nextReviewAt = [base.nextReviewAt, incoming.nextReviewAt].filter(Boolean).sort()[0];
+  const lastPracticed = [base.lastPracticed, incoming.lastPracticed].filter(Boolean).sort().at(-1);
+
+  return {
+    label: incoming.label ?? base.label,
+    consecutiveCorrect: Math.max(base.consecutiveCorrect ?? 0, incoming.consecutiveCorrect ?? 0),
+    correctCount: (base.correctCount ?? 0) + (incoming.correctCount ?? 0),
+    wrongCount: (base.wrongCount ?? 0) + (incoming.wrongCount ?? 0),
+    mastered: Boolean(base.mastered || incoming.mastered),
+    nextReviewAt,
+    lastPracticed,
+  };
+}
+
+function mergeMistakeEntries(base, incoming) {
+  const lastPracticed = [base.lastPracticed, incoming.lastPracticed].filter(Boolean).sort().at(-1);
+
+  return {
+    ...base,
+    ...incoming,
+    wrongCount: (base.wrongCount ?? 0) + (incoming.wrongCount ?? 0),
+    lastPracticed,
+  };
+}
+
+function normalizeStoredState(savedState) {
+  const favorites = [...new Set((savedState.favorites ?? []).map(normalizeWordId))];
+
+  const wordProgress = Object.entries(savedState.wordProgress ?? {}).reduce((accumulator, [wordId, entry]) => {
+    const normalizedId = normalizeWordId(wordId);
+    accumulator[normalizedId] = mergeReviewEntries(accumulator[normalizedId], entry);
+    return accumulator;
+  }, {});
+
+  const reviewMap = Object.entries(savedState.reviewMap ?? {}).reduce((accumulator, [key, entry]) => {
+    const normalizedKey = key.startsWith("vocabulary:")
+      ? `vocabulary:${normalizeVocabularyItemId(key.slice("vocabulary:".length))}`
+      : key;
+    accumulator[normalizedKey] = mergeReviewEntries(accumulator[normalizedKey], entry);
+    return accumulator;
+  }, {});
+
+  const answerLog = (savedState.answerLog ?? []).map((item) => ({
+    ...item,
+    relatedWordId: normalizeWordId(item.relatedWordId),
+    itemId: item.domain === "vocabulary" ? normalizeVocabularyItemId(item.itemId) : item.itemId,
+  }));
+
+  const mistakes = (savedState.mistakes ?? []).reduce((accumulator, item) => {
+    const normalizedItem = {
+      ...item,
+      itemId: item.domain === "vocabulary" ? normalizeVocabularyItemId(item.itemId) : item.itemId,
+    };
+    const normalizedKey = item.domain === "vocabulary"
+      ? `${item.domain}:${normalizedItem.itemId}`
+      : item.key ?? `${item.domain}:${normalizedItem.itemId}`;
+    normalizedItem.key = normalizedKey;
+
+    const existing = accumulator.find((entry) => entry.key === normalizedKey);
+    if (existing) {
+      const index = accumulator.findIndex((entry) => entry.key === normalizedKey);
+      accumulator[index] = mergeMistakeEntries(existing, normalizedItem);
+    } else {
+      accumulator.push(normalizedItem);
+    }
+
+    return accumulator;
+  }, []);
+
+  return {
+    ...savedState,
+    favorites,
+    wordProgress,
+    reviewMap,
+    answerLog,
+    mistakes,
+  };
 }
 
 function ensureDailyEngagement(state) {
@@ -358,7 +465,7 @@ function App() {
     }
 
     try {
-      return { ...INITIAL_STATE, ...JSON.parse(saved) };
+      return { ...INITIAL_STATE, ...normalizeStoredState(JSON.parse(saved)) };
     } catch {
       return INITIAL_STATE;
     }

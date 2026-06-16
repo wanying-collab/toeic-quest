@@ -549,7 +549,67 @@ function ensureCoreEntries(bank) {
   return nextBank;
 }
 
-export const vocabularyBank = ensureCoreEntries(rawVocabularyBank.map(enrichWord));
+const levelPriority = {
+  easy: 0,
+  normal: 1,
+  green: 2,
+  blue: 3,
+  advanced: 4,
+};
+
+function mergeWordRecord(base, incoming) {
+  return {
+    ...base,
+    collocations: uniqueList([...(base.collocations ?? []), ...(incoming.collocations ?? [])]).slice(0, 8),
+    synonyms: uniqueList([...(base.synonyms ?? []), ...(incoming.synonyms ?? [])]).slice(0, 6),
+    antonyms: uniqueList([...(base.antonyms ?? []), ...(incoming.antonyms ?? [])]).slice(0, 5),
+    roots: uniqueList([...(base.roots ?? []), ...(incoming.roots ?? [])]).slice(0, 5),
+    wordFamily: uniqueList([...(base.wordFamily ?? []), ...(incoming.wordFamily ?? [])]).slice(0, 8),
+    relatedWords: uniqueList([...(base.relatedWords ?? []), ...(incoming.relatedWords ?? [])]).slice(0, 8),
+  };
+}
+
+function dedupeVocabulary(bank) {
+  const canonicalMap = new Map();
+  const aliasMap = {};
+
+  bank.forEach((item) => {
+    const key = item.word.toLowerCase().trim();
+    const current = canonicalMap.get(key);
+
+    if (!current) {
+      canonicalMap.set(key, item);
+      aliasMap[item.id] = item.id;
+      return;
+    }
+
+    const currentPriority = levelPriority[current.level] ?? 99;
+    const incomingPriority = levelPriority[item.level] ?? 99;
+
+    if (incomingPriority < currentPriority) {
+      const merged = mergeWordRecord(item, current);
+      canonicalMap.set(key, merged);
+      aliasMap[current.id] = item.id;
+      aliasMap[item.id] = item.id;
+      return;
+    }
+
+    canonicalMap.set(key, mergeWordRecord(current, item));
+    aliasMap[item.id] = current.id;
+  });
+
+  const vocabularyBank = [...canonicalMap.values()];
+  vocabularyBank.forEach((item) => {
+    aliasMap[item.id] = item.id;
+  });
+
+  return { vocabularyBank, vocabularyIdAliases: aliasMap };
+}
+
+const dedupedVocabulary = dedupeVocabulary(ensureCoreEntries(rawVocabularyBank.map(enrichWord)));
+
+export const vocabularyBank = dedupedVocabulary.vocabularyBank;
+export const vocabularyIdAliases = dedupedVocabulary.vocabularyIdAliases;
 
 export const vocabularyPartOfSpeechOptions = [
   ...new Set(vocabularyBank.map((item) => item.partOfSpeech)),
@@ -564,10 +624,10 @@ export {
 export const vocabularyLibraryMeta = {
   totalWords: vocabularyBank.length,
   levelCounts: {
-    easy: level1BasicVocabulary.length,
-    normal: level2NormalVocabulary.length,
-    green: level3GreenVocabulary.length,
-    blue: level4BlueVocabulary.length,
-    advanced: level5AdvancedVocabulary.length,
+    easy: vocabularyBank.filter((item) => item.level === "easy").length,
+    normal: vocabularyBank.filter((item) => item.level === "normal").length,
+    green: vocabularyBank.filter((item) => item.level === "green").length,
+    blue: vocabularyBank.filter((item) => item.level === "blue").length,
+    advanced: vocabularyBank.filter((item) => item.level === "advanced").length,
   },
 };
