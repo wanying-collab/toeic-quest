@@ -1,553 +1,68 @@
+import { vocabularyBank as legacyVocabularyBank } from "../vocabulary.js";
 import {
+  categoryAliasMap,
+  extraVocabularySeeds,
+  validMultiWordTerms,
   vocabularyCategories,
-  vocabularyLevels,
   vocabularyFrequencyOptions,
-} from "./shared.js";
+  vocabularyLevels,
+  vocabularyThemes,
+  wordQualityProfiles,
+} from "./catalog.js";
 import { level1BasicVocabulary } from "./level1-basic.js";
 import { level2NormalVocabulary } from "./level2-normal.js";
 import { level3GreenVocabulary } from "./level3-green.js";
 import { level4BlueVocabulary } from "./level4-blue.js";
 import { level5AdvancedVocabulary } from "./level5-advanced.js";
 
-const rawVocabularyBank = [
+const categoryZhMap = Object.fromEntries(
+  vocabularyCategories.map((item) => [item.label, item.labelZh]),
+);
+
+const themeLabelByCategory = {
+  Office: "Office English",
+  Meeting: "Office English",
+  Email: "Office English",
+  Business: "Business English",
+  "Corporate Development": "Business English",
+  "Project Management": "Business English",
+  Sales: "Business English",
+  Finance: "Finance English",
+  Accounting: "Finance English",
+  Banking: "Finance English",
+  Insurance: "Finance English",
+  Purchasing: "Purchasing English",
+  "Supply Chain": "Purchasing English",
+  Manufacturing: "Manufacturing English",
+  Maintenance: "Manufacturing English",
+  "Quality Control": "Manufacturing English",
+  Engineering: "Technology English",
+  Technology: "Technology English",
+  Logistics: "Logistics English",
+  Travel: "Travel English",
+  Hotel: "Travel English",
+  Airport: "Travel English",
+  Dining: "Travel English",
+  Entertainment: "Travel English",
+  "Customer Service": "Customer Service English",
+  "Human Resources": "Business English",
+  Contract: "Customer Service English",
+  Healthcare: "Travel English",
+};
+
+const validMultiWordTermSet = new Set(validMultiWordTerms);
+const suspiciousPhrasePatterns = [
+  /\b(carefully|quickly|regularly|online)\b/i,
+  /^in advance$/i,
+];
+
+const rawLegacyVocabulary = [
   ...level1BasicVocabulary,
   ...level2NormalVocabulary,
   ...level3GreenVocabulary,
   ...level4BlueVocabulary,
   ...level5AdvancedVocabulary,
 ];
-
-export const vocabularyThemes = [
-  {
-    id: "office-english",
-    label: "Office English",
-    description: "Files, schedules, paperwork, and office routines.",
-    categories: ["Office", "Meeting"],
-    keywords: ["deadline", "document", "office", "schedule", "filing", "stationery"],
-    starterSize: 150,
-  },
-  {
-    id: "business-english",
-    label: "Business English",
-    description: "Core company, management, and growth vocabulary.",
-    categories: ["Business", "Corporate Development", "Project Management"],
-    keywords: ["business", "growth", "proposal", "strategy", "stakeholder", "acquisition"],
-    starterSize: 180,
-  },
-  {
-    id: "meeting-english",
-    label: "Meeting English",
-    description: "Agenda, presentation, minutes, and meeting flow.",
-    categories: ["Meeting", "Office"],
-    keywords: ["agenda", "conference", "meeting", "minutes", "presentation", "brief"],
-    starterSize: 140,
-  },
-  {
-    id: "email-english",
-    label: "Email English",
-    description: "Reply, request, follow-up, and email action language.",
-    categories: ["Office", "Business", "Customer Service"],
-    keywords: ["email", "reply", "follow", "request", "send", "subject"],
-    starterSize: 130,
-  },
-  {
-    id: "finance-english",
-    label: "Finance English",
-    description: "Budgeting, accounting, banking, and reporting terms.",
-    categories: ["Finance", "Accounting", "Banking", "Insurance"],
-    keywords: ["budget", "equity", "invoice", "liability", "audit", "premium"],
-    starterSize: 180,
-  },
-  {
-    id: "purchasing-english",
-    label: "Purchasing English",
-    description: "Buying, quotations, procurement, and vendor communication.",
-    categories: ["Purchasing", "Supply Chain"],
-    keywords: ["purchase", "quotation", "vendor", "procurement", "order", "supplier"],
-    starterSize: 160,
-  },
-  {
-    id: "manufacturing-english",
-    label: "Manufacturing English",
-    description: "Production, quality, machinery, routing, and maintenance.",
-    categories: ["Manufacturing", "Engineering", "Supply Chain"],
-    keywords: [
-      "production",
-      "inventory",
-      "maintenance",
-      "machinery",
-      "assembly",
-      "quality control",
-      "lead time",
-      "routing",
-      "scheduling",
-    ],
-    starterSize: 180,
-  },
-  {
-    id: "logistics-english",
-    label: "Logistics English",
-    description: "Warehouse, shipment, procurement, distribution, and delivery.",
-    categories: ["Logistics", "Supply Chain", "Purchasing", "Travel"],
-    keywords: ["warehouse", "shipment", "supplier", "procurement", "distribution", "inventory control"],
-    starterSize: 180,
-  },
-  {
-    id: "technology-english",
-    label: "Technology English",
-    description: "Systems, databases, deployment, and technical support language.",
-    categories: ["Technology", "Engineering"],
-    keywords: ["database", "deployment", "dashboard", "integration", "system", "technical"],
-    starterSize: 150,
-  },
-  {
-    id: "travel-english",
-    label: "Travel English",
-    description: "Hotel, airport, itinerary, and transportation vocabulary.",
-    categories: ["Travel", "Hotel", "Airport", "Dining"],
-    keywords: ["airport", "boarding", "hotel", "itinerary", "reservation", "terminal"],
-    starterSize: 140,
-  },
-  {
-    id: "customer-service-english",
-    label: "Customer Service English",
-    description: "Complaints, refunds, support, and guest handling language.",
-    categories: ["Customer Service", "Dining", "Hotel", "Sales"],
-    keywords: ["complaint", "customer", "refund", "service", "support", "satisfaction"],
-    starterSize: 150,
-  },
-];
-
-const qualityProfiles = {
-  inventory: {
-    meaning: "庫存",
-    partOfSpeech: "noun",
-    category: "Logistics",
-    theme: "Logistics English",
-    pronunciation: "/ˈɪnvənˌtɔːri/",
-    example: "The inventory was checked yesterday.",
-    exampleZh: "昨天已完成庫存盤點。",
-    collocations: [
-      "inventory management",
-      "inventory control",
-      "inventory system",
-      "inventory report",
-    ],
-    synonyms: ["stock"],
-    relatedWords: ["warehouse", "shipment", "supplier", "procurement"],
-    wordFamily: ["inventory", "inventoried", "inventory control"],
-  },
-  warehouse: {
-    meaning: "倉庫",
-    partOfSpeech: "noun",
-    category: "Logistics",
-    theme: "Logistics English",
-    pronunciation: "/ˈwerˌhaʊs/",
-    example: "The warehouse receives new shipments every morning.",
-    exampleZh: "倉庫每天早上都會接收新貨。",
-    collocations: [
-      "warehouse manager",
-      "warehouse space",
-      "warehouse operations",
-      "warehouse inventory",
-    ],
-    synonyms: ["storage facility", "distribution center"],
-    relatedWords: ["inventory", "shipment", "supplier", "distribution"],
-    wordFamily: ["warehouse", "warehousing", "warehouse staff"],
-  },
-  shipment: {
-    meaning: "貨件；出貨",
-    partOfSpeech: "noun",
-    category: "Logistics",
-    theme: "Logistics English",
-    pronunciation: "/ˈʃɪpmənt/",
-    example: "The shipment was delayed by heavy rain.",
-    exampleZh: "這批貨因大雨而延誤。",
-    collocations: [
-      "shipment delay",
-      "shipment tracking",
-      "international shipment",
-      "shipment status",
-    ],
-    synonyms: ["delivery", "consignment"],
-    relatedWords: ["warehouse", "supplier", "inventory", "procurement"],
-    wordFamily: ["ship", "shipment", "shipping", "shipper"],
-  },
-  supplier: {
-    meaning: "供應商",
-    partOfSpeech: "noun",
-    category: "Purchasing",
-    theme: "Purchasing English",
-    pronunciation: "/səˈplaɪər/",
-    example: "Our supplier confirmed the delivery schedule.",
-    exampleZh: "我們的供應商已確認交貨時程。",
-    collocations: [
-      "supplier contract",
-      "supplier performance",
-      "main supplier",
-      "supplier evaluation",
-    ],
-    synonyms: ["vendor", "provider"],
-    relatedWords: ["procurement", "shipment", "warehouse", "inventory"],
-    wordFamily: ["supply", "supplier", "supplied", "supplying"],
-  },
-  procurement: {
-    meaning: "採購",
-    partOfSpeech: "noun",
-    category: "Purchasing",
-    theme: "Purchasing English",
-    pronunciation: "/prəˈkjʊrmənt/",
-    example: "The procurement team is reviewing vendor quotations.",
-    exampleZh: "採購團隊正在審查供應商報價。",
-    collocations: [
-      "procurement process",
-      "procurement team",
-      "procurement policy",
-      "procurement cost",
-    ],
-    synonyms: ["purchasing", "sourcing"],
-    relatedWords: ["supplier", "quotation", "inventory", "shipment"],
-    wordFamily: ["procure", "procured", "procuring", "procurement"],
-  },
-  produce: {
-    meaning: "生產；製造",
-    partOfSpeech: "verb",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/prəˈduːs/",
-    example: "The factory can produce 500 units a day.",
-    exampleZh: "這間工廠一天可以生產 500 個單位。",
-    collocations: [
-      "produce goods",
-      "produce efficiently",
-      "produce in bulk",
-      "produce parts",
-    ],
-    synonyms: ["manufacture", "create"],
-    relatedWords: ["product", "production", "producer", "productivity"],
-    wordFamily: [
-      "produce",
-      "product",
-      "production",
-      "producer",
-      "productive",
-      "productivity",
-    ],
-  },
-  production: {
-    meaning: "生產；產量",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/prəˈdʌkʃən/",
-    example: "Production will increase next month.",
-    exampleZh: "下個月的產量將會增加。",
-    collocations: [
-      "production line",
-      "production schedule",
-      "production target",
-      "production cost",
-    ],
-    synonyms: ["manufacturing", "output"],
-    relatedWords: ["produce", "assembly", "maintenance", "machinery"],
-    wordFamily: [
-      "produce",
-      "product",
-      "production",
-      "producer",
-      "productive",
-      "productivity",
-    ],
-  },
-  maintenance: {
-    meaning: "維修保養",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/ˈmeɪntənəns/",
-    example: "The machine is down for maintenance.",
-    exampleZh: "這台機器因保養而暫停運作。",
-    collocations: [
-      "preventive maintenance",
-      "maintenance schedule",
-      "maintenance team",
-      "routine maintenance",
-    ],
-    synonyms: ["upkeep", "servicing"],
-    relatedWords: ["machinery", "production", "downtime", "assembly"],
-    wordFamily: ["maintain", "maintenance", "maintained", "maintaining"],
-  },
-  machinery: {
-    meaning: "機械設備",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/məˈʃiːnəri/",
-    example: "The new machinery improved efficiency on the line.",
-    exampleZh: "新機械設備提升了產線效率。",
-    collocations: [
-      "heavy machinery",
-      "industrial machinery",
-      "machinery upgrade",
-      "machinery maintenance",
-    ],
-    synonyms: ["equipment", "machines"],
-    relatedWords: ["maintenance", "assembly", "production", "quality control"],
-    wordFamily: ["machine", "machinery", "machinist"],
-  },
-  assembly: {
-    meaning: "組裝",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/əˈsembli/",
-    example: "The assembly process was revised last week.",
-    exampleZh: "組裝流程已在上週完成修訂。",
-    collocations: [
-      "assembly line",
-      "assembly process",
-      "assembly area",
-      "assembly instructions",
-    ],
-    synonyms: ["construction", "putting together"],
-    relatedWords: ["machinery", "production", "routing", "quality control"],
-    wordFamily: ["assemble", "assembled", "assembly"],
-  },
-  "lead time": {
-    meaning: "前置時間",
-    partOfSpeech: "noun",
-    category: "Supply Chain",
-    theme: "Manufacturing English",
-    pronunciation: "/ˈliːd taɪm/",
-    example: "The lead time is two weeks for custom parts.",
-    exampleZh: "客製化零件的前置時間是兩週。",
-    collocations: [
-      "short lead time",
-      "lead time reduction",
-      "production lead time",
-      "shipping lead time",
-    ],
-    synonyms: ["processing time", "turnaround time"],
-    relatedWords: ["routing", "scheduling", "shipment", "production"],
-    wordFamily: ["lead time", "lead-time planning"],
-  },
-  routing: {
-    meaning: "製程路線；路由安排",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/ˈruːtɪŋ/",
-    example: "Routing determines the order of each production step.",
-    exampleZh: "製程路線決定每個生產步驟的順序。",
-    collocations: [
-      "routing sheet",
-      "routing plan",
-      "routing process",
-      "routing sequence",
-    ],
-    synonyms: ["path planning", "process routing"],
-    relatedWords: ["scheduling", "assembly", "lead time", "production"],
-    wordFamily: ["route", "routing", "routed"],
-  },
-  scheduling: {
-    meaning: "排程",
-    partOfSpeech: "noun",
-    category: "Manufacturing",
-    theme: "Manufacturing English",
-    pronunciation: "/ˈskedʒuːlɪŋ/",
-    example: "Scheduling helps the factory avoid bottlenecks.",
-    exampleZh: "排程能幫助工廠避免瓶頸。",
-    collocations: [
-      "production scheduling",
-      "shift scheduling",
-      "scheduling software",
-      "scheduling conflict",
-    ],
-    synonyms: ["planning", "arranging"],
-    relatedWords: ["routing", "lead time", "production", "maintenance"],
-    wordFamily: ["schedule", "scheduled", "scheduling"],
-  },
-  invoice: {
-    meaning: "發票",
-    partOfSpeech: "noun",
-    category: "Finance",
-    theme: "Finance English",
-    pronunciation: "/ˈɪnvɔɪs/",
-    example: "Please send the invoice by email today.",
-    exampleZh: "請今天以電子郵件寄出發票。",
-    collocations: [
-      "issue an invoice",
-      "pay an invoice",
-      "invoice amount",
-      "invoice number",
-    ],
-    synonyms: ["bill", "statement"],
-    relatedWords: ["payment", "accounting", "purchase", "budget"],
-    wordFamily: ["invoice", "invoiced", "invoicing"],
-  },
-  schedule: {
-    meaning: "行程表；時程",
-    partOfSpeech: "noun",
-    category: "Office",
-    theme: "Office English",
-    pronunciation: "/ˈskedʒuːl/",
-    example: "The schedule was updated this morning.",
-    exampleZh: "時程表已在今天早上更新。",
-    collocations: [
-      "meeting schedule",
-      "work schedule",
-      "schedule change",
-      "schedule update",
-    ],
-    synonyms: ["timetable", "agenda"],
-    relatedWords: ["meeting", "deadline", "presentation", "itinerary"],
-    wordFamily: ["schedule", "scheduled", "scheduling"],
-  },
-};
-
-function uniqueList(items = []) {
-  return [...new Set(items.filter(Boolean).map((item) => String(item).trim()))];
-}
-
-function headwordOf(word) {
-  return String(word).trim().toLowerCase();
-}
-
-function baseHeadwordOf(word) {
-  return String(word).trim().split(" ")[0].toLowerCase();
-}
-
-function formatThemeFromCategory(category) {
-  const map = {
-    Office: "Office English",
-    Meeting: "Meeting English",
-    Business: "Business English",
-    "Corporate Development": "Business English",
-    Finance: "Finance English",
-    Accounting: "Finance English",
-    Banking: "Finance English",
-    Insurance: "Finance English",
-    Purchasing: "Purchasing English",
-    Manufacturing: "Manufacturing English",
-    Logistics: "Logistics English",
-    "Supply Chain": "Logistics English",
-    Engineering: "Technology English",
-    Technology: "Technology English",
-    Travel: "Travel English",
-    Hotel: "Travel English",
-    Airport: "Travel English",
-    Dining: "Travel English",
-    "Customer Service": "Customer Service English",
-    Sales: "Business English",
-    "Human Resources": "Business English",
-    "Project Management": "Business English",
-  };
-
-  return map[category] ?? "Business English";
-}
-
-function findThemeByWord(word) {
-  const haystack = [
-    word.word,
-    word.meaning,
-    word.category,
-    ...(word.collocations ?? []),
-    ...(word.synonyms ?? []),
-    ...(word.wordFamily ?? []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return (
-    vocabularyThemes.find(
-      (theme) =>
-        theme.categories.includes(word.category) ||
-        theme.keywords.some((keyword) => haystack.includes(keyword.toLowerCase())),
-    )?.label ?? formatThemeFromCategory(word.category)
-  );
-}
-
-function buildRelatedWords(word) {
-  const sameTheme = rawVocabularyBank
-    .filter(
-      (item) =>
-        item.id !== word.id &&
-        !item.word.includes(" ") &&
-        (item.category === word.category || baseHeadwordOf(item.word) === baseHeadwordOf(word.word)),
-    )
-    .slice(0, 6)
-    .map((item) => item.word);
-
-  return uniqueList(sameTheme).slice(0, 4);
-}
-
-function enrichWord(word) {
-  const profile = qualityProfiles[headwordOf(word.word)] ?? qualityProfiles[baseHeadwordOf(word.word)] ?? {};
-  const category = profile.category ?? word.category;
-  const theme = profile.theme ?? findThemeByWord({ ...word, category });
-  const pronunciation = profile.pronunciation ?? word.pronunciation;
-  const collocations = uniqueList(profile.collocations ?? word.collocations).slice(0, 6);
-  const synonyms = uniqueList(profile.synonyms ?? word.synonyms).slice(0, 5);
-  const antonyms = uniqueList(profile.antonyms ?? word.antonyms).slice(0, 4);
-  const roots = uniqueList(profile.roots ?? word.roots).slice(0, 4);
-  const wordFamily = uniqueList(profile.wordFamily ?? word.wordFamily).slice(0, 6);
-  const relatedWords = uniqueList(profile.relatedWords ?? buildRelatedWords({ ...word, category })).slice(0, 6);
-
-  return {
-    ...word,
-    meaning: profile.meaning ?? word.meaning,
-    partOfSpeech: profile.partOfSpeech ?? word.partOfSpeech,
-    category,
-    theme,
-    pronunciation,
-    example: profile.example ?? word.example,
-    exampleZh: profile.exampleZh ?? word.exampleZh,
-    collocations,
-    synonyms,
-    antonyms,
-    roots,
-    wordFamily,
-    relatedWords,
-  };
-}
-
-function ensureCoreEntries(bank) {
-  const nextBank = [...bank];
-
-  Object.entries(qualityProfiles).forEach(([headword, profile]) => {
-    const hasExact = nextBank.some((item) => item.word.toLowerCase() === headword);
-    if (hasExact) {
-      return;
-    }
-
-    const source = nextBank.find((item) => baseHeadwordOf(item.word) === headword);
-    const fallback = {
-      id: `core-${headword}`,
-      word: headword,
-      meaning: profile.meaning ?? headword,
-      partOfSpeech: profile.partOfSpeech ?? source?.partOfSpeech ?? "noun",
-      pronunciation: profile.pronunciation ?? source?.pronunciation ?? `/${headword}/`,
-      example: profile.example ?? source?.example ?? `The team reviewed the ${headword} this morning.`,
-      exampleZh: profile.exampleZh ?? source?.exampleZh ?? `團隊今天早上檢查了 ${headword}。`,
-      collocations: profile.collocations ?? source?.collocations ?? [`review the ${headword}`],
-      synonyms: profile.synonyms ?? source?.synonyms ?? [],
-      antonyms: profile.antonyms ?? source?.antonyms ?? [],
-      roots: profile.roots ?? source?.roots ?? [],
-      wordFamily: profile.wordFamily ?? source?.wordFamily ?? [headword],
-      relatedWords: profile.relatedWords ?? source?.relatedWords ?? [],
-      category: profile.category ?? source?.category ?? "Business",
-      level: source?.level ?? "easy",
-      frequency: source?.frequency ?? 5,
-      isFavorite: false,
-      wrongCount: 0,
-      mastered: false,
-    };
-
-    nextBank.unshift(enrichWord(fallback));
-  });
-
-  return nextBank;
-}
 
 const levelPriority = {
   easy: 0,
@@ -557,68 +72,590 @@ const levelPriority = {
   advanced: 4,
 };
 
-function mergeWordRecord(base, incoming) {
+function cleanText(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function slugifyWord(word) {
+  return cleanText(word)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function headwordOf(word) {
+  return cleanText(word).toLowerCase();
+}
+
+function baseHeadwordOf(word) {
+  return headwordOf(word).split(" ")[0];
+}
+
+function normalizeCategory(category) {
+  return categoryAliasMap[cleanText(category)] ?? cleanText(category) ?? "Business";
+}
+
+function normalizePartOfSpeech(partOfSpeech) {
+  const normalized = cleanText(partOfSpeech).toLowerCase();
+  if (normalized.includes("verb")) {
+    return "verb";
+  }
+  if (normalized.includes("adjective")) {
+    return "adjective";
+  }
+  if (normalized.includes("adverb")) {
+    return "adverb";
+  }
+  return "noun";
+}
+
+function isLegitimateVocabularyWord(word) {
+  const normalized = headwordOf(word);
+  if (!normalized) {
+    return false;
+  }
+
+  if (validMultiWordTermSet.has(normalized)) {
+    return true;
+  }
+
+  return /^[a-z][a-z-]*$/i.test(normalized);
+}
+
+function looksSyntheticPhrase(value) {
+  const normalized = headwordOf(value);
+  if (!normalized) {
+    return true;
+  }
+
+  if (validMultiWordTermSet.has(normalized)) {
+    return false;
+  }
+
+  if (normalized.split(" ").length <= 1) {
+    return false;
+  }
+
+  return suspiciousPhrasePatterns.some((pattern) => pattern.test(normalized));
+}
+
+function uniqueList(items = []) {
+  return [...new Set(items.map(cleanText).filter(Boolean))];
+}
+
+function buildPronunciation(word, profilePronunciation, fallbackPronunciation) {
+  if (profilePronunciation) {
+    return profilePronunciation;
+  }
+  if (cleanText(fallbackPronunciation)) {
+    return cleanText(fallbackPronunciation);
+  }
+  return `/${cleanText(word).toLowerCase()}/`;
+}
+
+function buildDefaultCollocations(entry) {
+  if (entry.partOfSpeech === "verb") {
+    return [`${entry.word} the document`, `${entry.word} the report`];
+  }
+
+  if (entry.partOfSpeech === "adjective") {
+    return [`${entry.word} report`, `${entry.word} request`];
+  }
+
+  const category = entry.category;
+  if (["Finance", "Accounting", "Banking", "Insurance"].includes(category)) {
+    return [`${entry.word} report`, `${entry.word} record`];
+  }
+  if (["Logistics", "Supply Chain", "Purchasing"].includes(category)) {
+    return [`${entry.word} status`, `${entry.word} process`];
+  }
+  if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(category)) {
+    return [`${entry.word} process`, `${entry.word} standard`];
+  }
+  if (["Travel", "Hotel", "Airport", "Dining"].includes(category)) {
+    return [`${entry.word} service`, `${entry.word} schedule`];
+  }
+  return [`review the ${entry.word}`, `${entry.word} update`];
+}
+
+const collocationExampleTemplates = {
+  review: (meaning, word) => ({
+    example: `The team reviewed the ${word} before the meeting.`,
+    exampleZh: `團隊在會議前審閱了${meaning}。`,
+  }),
+  submit: (meaning, word) => ({
+    example: `Please submit the ${word} by this afternoon.`,
+    exampleZh: `請在今天下午前提交${meaning}。`,
+  }),
+  update: (meaning, word) => ({
+    example: `Please update the ${word} before noon.`,
+    exampleZh: `請在中午前更新${meaning}。`,
+  }),
+  check: (meaning, word) => ({
+    example: `Please check the ${word} before you send the file.`,
+    exampleZh: `請在寄出文件前先確認${meaning}。`,
+  }),
+  track: (meaning, word) => ({
+    example: `The staff tracked the ${word} throughout the day.`,
+    exampleZh: `工作人員整天都在追蹤${meaning}。`,
+  }),
+  pay: (meaning, word) => ({
+    example: `The accounting team paid the ${word} on time.`,
+    exampleZh: `會計團隊準時處理了${meaning}的付款。`,
+  }),
+  request: (meaning, word) => ({
+    example: `We requested the ${word} from the supplier yesterday.`,
+    exampleZh: `我們昨天向供應商索取了${meaning}。`,
+  }),
+  prepare: (meaning, word) => ({
+    example: `The team prepared the ${word} for the client meeting.`,
+    exampleZh: `團隊為了客戶會議準備了${meaning}。`,
+  }),
+  reduce: (meaning, word) => ({
+    example: `The company is working to reduce ${word}.`,
+    exampleZh: `公司正在努力降低${meaning}。`,
+  }),
+};
+
+const collocationActionMap = {
+  analyze: "分析",
+  answer: "回覆",
+  apply: "申請",
+  approve: "核准",
+  arrange: "安排",
+  assist: "協助",
+  attend: "參加",
+  avoid: "避免",
+  book: "預訂",
+  calibrate: "校正",
+  cancel: "取消",
+  certify: "認證",
+  check: "確認",
+  choose: "選擇",
+  clarify: "釐清",
+  clear: "完成",
+  collect: "蒐集",
+  compare: "比較",
+  compile: "彙整",
+  complete: "完成",
+  conduct: "執行",
+  confirm: "確認",
+  contact: "聯絡",
+  continue: "持續進行",
+  count: "盤點",
+  deliver: "遞送",
+  detect: "偵測",
+  diagnose: "診斷",
+  discuss: "討論",
+  draft: "擬定",
+  encourage: "鼓勵",
+  enter: "輸入",
+  estimate: "估算",
+  evaluate: "評估",
+  file: "歸檔",
+  finish: "完成",
+  follow: "跟進",
+  form: "建立",
+  give: "提供",
+  grant: "授予",
+  handle: "處理",
+  hire: "聘用",
+  improve: "改善",
+  increase: "提高",
+  inspect: "檢查",
+  install: "安裝",
+  introduce: "介紹",
+  issue: "開立",
+  join: "參加",
+  keep: "保留",
+  launch: "推出",
+  load: "裝載",
+  maintain: "維護",
+  manage: "管理",
+  measure: "量測",
+  meet: "會見",
+  monitor: "監控",
+  negotiate: "協商",
+  offer: "提供",
+  open: "開啟",
+  operate: "操作",
+  order: "訂購",
+  pay: "支付",
+  plan: "規劃",
+  place: "下達",
+  post: "張貼",
+  prepare: "準備",
+  print: "列印",
+  process: "處理",
+  protect: "保護",
+  provide: "提供",
+  raise: "提高",
+  reach: "達成",
+  receive: "接收",
+  record: "記錄",
+  recruit: "招募",
+  reduce: "降低",
+  register: "登記",
+  renew: "續約",
+  repair: "維修",
+  replace: "更換",
+  report: "回報",
+  request: "索取",
+  reserve: "預訂",
+  resolve: "解決",
+  restart: "重新啟動",
+  review: "審閱",
+  run: "執行",
+  scan: "掃描",
+  schedule: "安排",
+  secure: "取得",
+  select: "選擇",
+  send: "寄送",
+  serve: "提供",
+  set: "設定",
+  share: "分享",
+  ship: "出貨",
+  show: "展現",
+  sign: "簽署",
+  start: "開始",
+  store: "存放",
+  submit: "提交",
+  support: "支援",
+  take: "處理",
+  test: "測試",
+  track: "追蹤",
+  train: "培訓",
+  transfer: "轉移",
+  troubleshoot: "排除故障",
+  update: "更新",
+  use: "使用",
+  verify: "確認",
+  visit: "拜訪",
+  wait: "等待",
+  welcome: "接待",
+};
+
+function buildExampleFromCollocation(entry, primaryCollocation) {
+  const normalized = headwordOf(primaryCollocation);
+  const [verb] = normalized.split(" ");
+  const template = collocationExampleTemplates[verb];
+
+  if (template) {
+    return template(entry.meaning, entry.word);
+  }
+
+  const actionZh = collocationActionMap[verb];
+  if (actionZh) {
+    return {
+      example: `We need to ${primaryCollocation} this week.`,
+      exampleZh: `我們需要在本週${actionZh}${entry.meaning}。`,
+    };
+  }
+
+  if (normalized.includes(" ")) {
+    return {
+      example: `We need to ${primaryCollocation} this week.`,
+      exampleZh: `我們需要在本週處理與${entry.meaning}相關的事項。`,
+    };
+  }
+
+  if (entry.partOfSpeech === "verb") {
+    return {
+      example: `Please ${entry.word} the document before the deadline.`,
+      exampleZh: `請在截止前完成與${entry.meaning}相關的工作。`,
+    };
+  }
+
+  if (entry.partOfSpeech === "adjective") {
+    return {
+      example: `The manager asked for a ${entry.word} update on the project.`,
+      exampleZh: `主管要求提供與專案有關的${entry.meaning}更新。`,
+    };
+  }
+
+  if (["Logistics", "Supply Chain", "Purchasing"].includes(entry.category)) {
+    return {
+      example: `The staff monitored the ${entry.word} throughout the day.`,
+      exampleZh: `現場人員整天都在追蹤${entry.meaning}的狀態。`,
+    };
+  }
+
+  if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(entry.category)) {
+    return {
+      example: `The factory reviewed the ${entry.word} before production started.`,
+      exampleZh: `工廠在開始生產前確認了${entry.meaning}。`,
+    };
+  }
+
+  if (["Finance", "Accounting", "Banking", "Insurance"].includes(entry.category)) {
+    return {
+      example: `The finance team checked the ${entry.word} this morning.`,
+      exampleZh: `財務團隊今天早上確認了${entry.meaning}。`,
+    };
+  }
+
+  if (["Travel", "Hotel", "Airport", "Dining"].includes(entry.category)) {
+    return {
+      example: `The staff confirmed the ${entry.word} for the guest.`,
+      exampleZh: `工作人員已為客人確認${entry.meaning}。`,
+    };
+  }
+
   return {
-    ...base,
-    collocations: uniqueList([...(base.collocations ?? []), ...(incoming.collocations ?? [])]).slice(0, 8),
-    synonyms: uniqueList([...(base.synonyms ?? []), ...(incoming.synonyms ?? [])]).slice(0, 6),
-    antonyms: uniqueList([...(base.antonyms ?? []), ...(incoming.antonyms ?? [])]).slice(0, 5),
-    roots: uniqueList([...(base.roots ?? []), ...(incoming.roots ?? [])]).slice(0, 5),
-    wordFamily: uniqueList([...(base.wordFamily ?? []), ...(incoming.wordFamily ?? [])]).slice(0, 8),
-    relatedWords: uniqueList([...(base.relatedWords ?? []), ...(incoming.relatedWords ?? [])]).slice(0, 8),
+    example: `The team reviewed the ${entry.word} this morning.`,
+    exampleZh: `團隊今天早上確認了${entry.meaning}。`,
   };
 }
 
-function dedupeVocabulary(bank) {
-  const canonicalMap = new Map();
-  const aliasMap = {};
-
-  bank.forEach((item) => {
-    const key = item.word.toLowerCase().trim();
-    const current = canonicalMap.get(key);
-
-    if (!current) {
-      canonicalMap.set(key, item);
-      aliasMap[item.id] = item.id;
-      return;
-    }
-
-    const currentPriority = levelPriority[current.level] ?? 99;
-    const incomingPriority = levelPriority[item.level] ?? 99;
-
-    if (incomingPriority < currentPriority) {
-      const merged = mergeWordRecord(item, current);
-      canonicalMap.set(key, merged);
-      aliasMap[current.id] = item.id;
-      aliasMap[item.id] = item.id;
-      return;
-    }
-
-    canonicalMap.set(key, mergeWordRecord(current, item));
-    aliasMap[item.id] = current.id;
-  });
-
-  const vocabularyBank = [...canonicalMap.values()];
-  vocabularyBank.forEach((item) => {
-    aliasMap[item.id] = item.id;
-  });
-
-  return { vocabularyBank, vocabularyIdAliases: aliasMap };
+function normalizeSeed(seed, source) {
+  const category = normalizeCategory(seed.category);
+  return {
+    source,
+    sourceId: String(seed.id ?? `${source}-${slugifyWord(seed.word)}`),
+    word: cleanText(seed.word),
+    meaning: cleanText(seed.meaning),
+    partOfSpeech: normalizePartOfSpeech(seed.partOfSpeech),
+    pronunciation: cleanText(seed.pronunciation),
+    collocations: uniqueList(seed.collocations ?? []),
+    example: cleanText(seed.example),
+    exampleZh: cleanText(seed.exampleZh),
+    category,
+    categoryZh: categoryZhMap[category] ?? category,
+    level: cleanText(seed.level) || "normal",
+    frequency: Number(seed.frequency) || 3,
+  };
 }
 
-const dedupedVocabulary = dedupeVocabulary(ensureCoreEntries(rawVocabularyBank.map(enrichWord)));
+const normalizedSeeds = [
+  ...legacyVocabularyBank.map((item) => normalizeSeed(item, "legacy")),
+  ...extraVocabularySeeds.map((item) => normalizeSeed(item, "catalog")),
+].filter((item) => item.word && item.meaning && isLegitimateVocabularyWord(item.word));
 
-export const vocabularyBank = dedupedVocabulary.vocabularyBank;
-export const vocabularyIdAliases = dedupedVocabulary.vocabularyIdAliases;
+function buildFamilyProfileMap(profiles) {
+  const familyMap = new Map();
+
+  Object.entries(profiles).forEach(([word, config]) => {
+    familyMap.set(word, config);
+    (config.wordFamily ?? []).forEach((familyWord) => {
+      if (!familyMap.has(headwordOf(familyWord))) {
+        familyMap.set(headwordOf(familyWord), config);
+      }
+    });
+  });
+
+  return familyMap;
+}
+
+const familyProfileMap = buildFamilyProfileMap(wordQualityProfiles);
+const approvedFamilyWords = new Set(
+  Object.values(wordQualityProfiles).flatMap((config) =>
+    (config.wordFamily ?? []).map((word) => headwordOf(word)),
+  ),
+);
+
+function mergeWordRecord(base, incoming) {
+  const basePriority = levelPriority[base.level] ?? 99;
+  const incomingPriority = levelPriority[incoming.level] ?? 99;
+  const preferred = incomingPriority < basePriority ? incoming : base;
+  const secondary = preferred === incoming ? base : incoming;
+
+  return {
+    ...preferred,
+    collocations: uniqueList([...(preferred.collocations ?? []), ...(secondary.collocations ?? [])]),
+    example: preferred.example || secondary.example,
+    exampleZh: preferred.exampleZh || secondary.exampleZh,
+    frequency: Math.max(preferred.frequency ?? 0, secondary.frequency ?? 0),
+  };
+}
+
+const canonicalSeedMap = normalizedSeeds.reduce((map, seed) => {
+  const key = headwordOf(seed.word);
+  const current = map.get(key);
+  map.set(key, current ? mergeWordRecord(current, seed) : seed);
+  return map;
+}, new Map());
+
+function buildTheme(entry) {
+  return themeLabelByCategory[entry.category] ?? "Business English";
+}
+
+function buildBaseEntry(seed) {
+  const profileConfig = familyProfileMap.get(headwordOf(seed.word)) ?? {};
+  const collocations = uniqueList(
+    (profileConfig.collocations ?? seed.collocations ?? buildDefaultCollocations(seed)).filter(
+      (item) => !looksSyntheticPhrase(item),
+    ),
+  );
+  const example =
+    profileConfig.example && profileConfig.exampleZh
+      ? { example: profileConfig.example, exampleZh: profileConfig.exampleZh }
+      : buildExampleFromCollocation(seed, collocations[0]);
+
+  return {
+    id: `vw-${slugifyWord(seed.word)}`,
+    word: seed.word,
+    meaning: seed.meaning,
+    partOfSpeech: seed.partOfSpeech,
+    pronunciation: buildPronunciation(seed.word, profileConfig.pronunciation, seed.pronunciation),
+    example: example.example,
+    exampleZh: example.exampleZh,
+    collocations,
+    synonyms: uniqueList(profileConfig.synonyms ?? []),
+    antonyms: uniqueList(profileConfig.antonyms ?? []),
+    roots: uniqueList(profileConfig.roots ?? []),
+    wordFamily: uniqueList(profileConfig.wordFamily ?? []),
+    relatedWords: uniqueList(profileConfig.relatedWords ?? []),
+    category: seed.category,
+    categoryZh: seed.categoryZh,
+    level: seed.level,
+    frequency: seed.frequency,
+    isFavorite: false,
+    wrongCount: 0,
+    mastered: false,
+    theme: buildTheme(seed),
+  };
+}
+
+const baseVocabularyBank = [...canonicalSeedMap.values()].map(buildBaseEntry);
+
+function buildRelatedWords(entry, allWords) {
+  const relatedSet = new Set(
+    allWords
+      .filter((item) => item.id !== entry.id && item.category === entry.category)
+      .map((item) => item.word)
+      .slice(0, 6),
+  );
+
+  (entry.wordFamily ?? []).forEach((familyWord) => {
+    if (familyWord !== entry.word && allWords.some((item) => item.word === familyWord)) {
+      relatedSet.add(familyWord);
+    }
+  });
+
+  return [...relatedSet].slice(0, 6);
+}
+
+export const vocabularyBank = baseVocabularyBank
+  .map((entry, _, allWords) => ({
+    ...entry,
+    relatedWords:
+      entry.relatedWords.length > 0
+        ? entry.relatedWords.filter((word) => word !== entry.word)
+        : buildRelatedWords(entry, allWords).filter((word) => word !== entry.word),
+  }))
+  .sort((left, right) => left.word.localeCompare(right.word));
+
+const cleanWordMap = new Map(vocabularyBank.map((item) => [headwordOf(item.word), item.id]));
+
+function resolveCanonicalId(word) {
+  const normalized = headwordOf(word);
+  if (cleanWordMap.has(normalized)) {
+    return cleanWordMap.get(normalized);
+  }
+
+  const base = baseHeadwordOf(word);
+  return cleanWordMap.get(base) ?? null;
+}
+
+export const vocabularyIdAliases = rawLegacyVocabulary.reduce((aliases, item) => {
+  const canonicalId = resolveCanonicalId(item.word);
+  if (canonicalId) {
+    aliases[String(item.id)] = canonicalId;
+  }
+  return aliases;
+}, {});
+
+vocabularyBank.forEach((item) => {
+  vocabularyIdAliases[item.id] = item.id;
+});
 
 export const vocabularyPartOfSpeechOptions = [
   ...new Set(vocabularyBank.map((item) => item.partOfSpeech)),
 ].map((item) => ({ id: item, label: item }));
 
+function countDuplicates(words) {
+  const counts = words.reduce((map, item) => {
+    const key = headwordOf(item.word);
+    map.set(key, (map.get(key) ?? 0) + 1);
+    return map;
+  }, new Map());
+
+  return [...counts.values()].filter((count) => count > 1).length;
+}
+
+function looksFakeWordFamily(headword, familyWord) {
+  const normalizedHeadword = headwordOf(headword);
+  const normalizedFamilyWord = headwordOf(familyWord);
+  if (!normalizedFamilyWord || normalizedFamilyWord === normalizedHeadword) {
+    return false;
+  }
+
+  if (approvedFamilyWords.has(normalizedFamilyWord)) {
+    return false;
+  }
+
+  if (validMultiWordTermSet.has(normalizedFamilyWord)) {
+    return false;
+  }
+
+  const naiveForms = new Set([
+    `${normalizedHeadword}er`,
+    `${normalizedHeadword}ing`,
+    `${normalizedHeadword}ed`,
+  ]);
+
+  const trimmed = normalizedHeadword.replace(/e$/, "");
+  naiveForms.add(`${trimmed}ing`);
+  naiveForms.add(`${trimmed}ed`);
+
+  return naiveForms.has(normalizedFamilyWord) && !cleanWordMap.has(normalizedFamilyWord);
+}
+
+function buildVocabularyQualityReport() {
+  const duplicateWords = countDuplicates(vocabularyBank);
+  const suspectedFakeWordFamily = vocabularyBank.flatMap((item) =>
+    (item.wordFamily ?? []).filter((familyWord) => looksFakeWordFamily(item.word, familyWord)),
+  ).length;
+  const suspectedFakePhrase = vocabularyBank.filter((item) => looksSyntheticPhrase(item.word)).length;
+  const missingTranslation = vocabularyBank.filter((item) => !cleanText(item.meaning)).length;
+  const missingExample = vocabularyBank.filter(
+    (item) => !cleanText(item.example) || !cleanText(item.exampleZh),
+  ).length;
+  const rawUniqueWords = new Set(rawLegacyVocabulary.map((item) => headwordOf(item.word)));
+  const removedDuplicateCopies = rawLegacyVocabulary.length - rawUniqueWords.size;
+  const removedSyntheticEntries = [...rawUniqueWords].filter((word) => !resolveCanonicalId(word)).length;
+  const issueWeight =
+    duplicateWords * 5 +
+    suspectedFakeWordFamily * 4 +
+    suspectedFakePhrase * 5 +
+    missingTranslation * 3 +
+    missingExample * 3;
+  const vocabularyQualityScore = Math.max(
+    0,
+    Math.round(100 - (issueWeight / Math.max(1, vocabularyBank.length)) * 100),
+  );
+
+  return {
+    totalWords: vocabularyBank.length,
+    duplicateWords,
+    suspectedFakeWordFamily,
+    suspectedFakePhrase,
+    missingTranslation,
+    missingExample,
+    removedFakeData: removedDuplicateCopies + removedSyntheticEntries,
+    vocabularyQualityScore,
+  };
+}
+
+export const vocabularyQualityReport = buildVocabularyQualityReport();
+
 export {
   vocabularyCategories,
-  vocabularyLevels,
   vocabularyFrequencyOptions,
+  vocabularyLevels,
+  vocabularyThemes,
 };
 
 export const vocabularyLibraryMeta = {
@@ -630,4 +667,5 @@ export const vocabularyLibraryMeta = {
     blue: vocabularyBank.filter((item) => item.level === "blue").length,
     advanced: vocabularyBank.filter((item) => item.level === "advanced").length,
   },
+  quality: vocabularyQualityReport,
 };
