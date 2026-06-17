@@ -215,8 +215,131 @@ function buildTheme(category) {
   return themeLabelByCategory[category] ?? "Business English";
 }
 
-function buildGenericExample(seed) {
+const collocationVerbSet = new Set([
+  "accept",
+  "adjust",
+  "analyze",
+  "approve",
+  "archive",
+  "arrange",
+  "assist",
+  "attend",
+  "book",
+  "build",
+  "calculate",
+  "check",
+  "collect",
+  "compare",
+  "complete",
+  "confirm",
+  "contact",
+  "coordinate",
+  "deliver",
+  "draft",
+  "evaluate",
+  "fill",
+  "fulfill",
+  "handle",
+  "improve",
+  "increase",
+  "inspect",
+  "issue",
+  "join",
+  "launch",
+  "maintain",
+  "manage",
+  "monitor",
+  "negotiate",
+  "operate",
+  "order",
+  "pay",
+  "place",
+  "prepare",
+  "print",
+  "process",
+  "produce",
+  "promote",
+  "protect",
+  "provide",
+  "reach",
+  "receive",
+  "record",
+  "reduce",
+  "register",
+  "renew",
+  "repair",
+  "replace",
+  "request",
+  "reserve",
+  "resolve",
+  "review",
+  "schedule",
+  "select",
+  "send",
+  "serve",
+  "set",
+  "share",
+  "ship",
+  "sign",
+  "sort",
+  "submit",
+  "support",
+  "track",
+  "train",
+  "transfer",
+  "update",
+  "verify",
+  "visit",
+  "write",
+]);
+
+function buildExampleFromCollocation(seed, collocations) {
+  const primary = collocations[0];
+  if (!primary) {
+    return null;
+  }
+
+  const parts = cleanText(primary).split(" ");
+  const verb = headwordOf(parts[0]);
+
+  if (!collocationVerbSet.has(verb)) {
+    return null;
+  }
+
   if (seed.partOfSpeech === "verb") {
+    return {
+      example: `The team will ${primary} before Friday.`,
+      exampleZh: `團隊會在星期五前${seed.meaning}相關事項。`,
+    };
+  }
+
+  return {
+    example: `Please ${primary} before the meeting.`,
+    exampleZh: `請在會議前先處理${seed.meaning}。`,
+  };
+}
+
+function buildGenericExample(seed) {
+  const collocationExample = buildExampleFromCollocation(seed, seed.collocations ?? []);
+  if (collocationExample) {
+    return collocationExample;
+  }
+
+  if (seed.partOfSpeech === "verb") {
+    if (["Purchasing", "Supply Chain", "Logistics"].includes(seed.category)) {
+      return {
+        example: `Please ${seed.word} the order before this afternoon.`,
+        exampleZh: `請在今天下午前${seed.meaning}這筆訂單。`,
+      };
+    }
+
+    if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(seed.category)) {
+      return {
+        example: `The technician will ${seed.word} the equipment this morning.`,
+        exampleZh: `技術人員今天上午會${seed.meaning}設備。`,
+      };
+    }
+
     return {
       example: `Please ${seed.word} the document before the deadline.`,
       exampleZh: `請在截止日前${seed.meaning}這份文件。`,
@@ -224,9 +347,51 @@ function buildGenericExample(seed) {
   }
 
   if (seed.partOfSpeech === "adjective") {
+    if (["Finance", "Accounting", "Banking", "Insurance"].includes(seed.category)) {
+      return {
+        example: `The manager requested a ${seed.word} financial report.`,
+        exampleZh: `經理要求一份${seed.meaning}的財務報告。`,
+      };
+    }
+
     return {
       example: `The manager asked for a ${seed.word} plan.`,
       exampleZh: `經理要求一份${seed.meaning}的計畫。`,
+    };
+  }
+
+  if (["Finance", "Accounting", "Banking", "Insurance"].includes(seed.category)) {
+    return {
+      example: `The finance team reviewed the ${seed.word} before closing the monthly report.`,
+      exampleZh: `財務團隊在完成月報前檢查了${seed.meaning}。`,
+    };
+  }
+
+  if (["Purchasing", "Supply Chain", "Logistics"].includes(seed.category)) {
+    return {
+      example: `The purchasing team reviewed the ${seed.word} before confirming the shipment.`,
+      exampleZh: `採購團隊在確認出貨前檢查了${seed.meaning}。`,
+    };
+  }
+
+  if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(seed.category)) {
+    return {
+      example: `The factory monitored the ${seed.word} during today's production run.`,
+      exampleZh: `工廠在今天的生產過程中持續監控${seed.meaning}。`,
+    };
+  }
+
+  if (["Travel", "Hotel", "Airport", "Dining", "Entertainment"].includes(seed.category)) {
+    return {
+      example: `The staff confirmed the ${seed.word} for tomorrow's guests.`,
+      exampleZh: `工作人員已為明天的來賓確認${seed.meaning}。`,
+    };
+  }
+
+  if (["Customer Service", "Contract", "Email"].includes(seed.category)) {
+    return {
+      example: `The team checked the ${seed.word} before replying to the client.`,
+      exampleZh: `團隊在回覆客戶前確認了${seed.meaning}。`,
     };
   }
 

@@ -5,7 +5,17 @@ function parseSeedRows(source) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const [word, meaning, partOfSpeech, category, level, frequency, collocations] = line.split("|");
+      const [
+        word,
+        meaning,
+        partOfSpeech,
+        category,
+        level,
+        frequency,
+        collocations,
+        example = "",
+        exampleZh = "",
+      ] = line.split("|");
       return {
         word,
         meaning,
@@ -17,6 +27,8 @@ function parseSeedRows(source) {
           .split(";")
           .map((item) => item.trim())
           .filter(Boolean),
+        example: example.trim(),
+        exampleZh: exampleZh.trim(),
       };
     });
 }
@@ -882,6 +894,462 @@ mailbox|電子信箱|noun|Email|easy|3|check the mailbox;open the mailbox
 signature|簽名檔|noun|Email|easy|3|update the signature;review the signature
 `;
 
+const coreBusinessGrowthRows = `
+adapt|適應|verb|Business|normal|4|adapt to change;adapt the strategy
+admission|承認|noun|Business|green|3|make an admission;written admission
+adopt|採用|verb|Business|normal|4|adopt a policy;adopt the system
+alignment|一致|noun|Business|green|3|improve alignment;team alignment
+anticipate|預期|verb|Business|normal|4|anticipate demand;anticipate growth
+applicable|適用的|adjective|Business|normal|3|applicable rule;applicable guideline
+appoint|任命|verb|Business|normal|4|appoint a director;appoint a manager
+approval|核准|noun|Business|easy|4|obtain approval;final approval
+assumption|假設|noun|Business|green|3|test an assumption;basic assumption
+attain|達成|verb|Business|normal|4|attain a goal;attain the target
+autonomy|自主性|noun|Business|blue|2|increase autonomy;employee autonomy
+barrier|障礙|noun|Business|normal|4|remove barriers;trade barrier
+circulation|流通|noun|Business|green|3|increase circulation;internal circulation
+clarify|澄清|verb|Business|normal|4|clarify the issue;clarify the requirement
+coherent|連貫的|adjective|Business|green|3|coherent plan;coherent message
+consecutive|連續的|adjective|Business|normal|3|consecutive days;consecutive quarters
+considerable|相當大的|adjective|Business|green|3|considerable growth;considerable cost
+consult|諮詢|verb|Business|normal|4|consult the client;consult an expert
+contribute|貢獻|verb|Business|normal|4|contribute ideas;contribute to growth
+contribution|貢獻|noun|Business|normal|4|make a contribution;employee contribution
+controversy|爭議|noun|Business|blue|2|avoid controversy;public controversy
+convene|召開|verb|Business|green|3|convene a panel;convene the committee
+counterpart|對口人員|noun|Business|green|3|contact the counterpart;overseas counterpart
+decisive|果斷的|adjective|Business|green|3|decisive action;decisive role
+dedicated|專心的|adjective|Business|normal|3|dedicated staff;dedicated team
+demonstrate|展示|verb|Business|normal|4|demonstrate value;demonstrate the product
+differentiation|差異化|noun|Business|blue|2|product differentiation;market differentiation
+disruption|中斷|noun|Business|green|3|avoid disruption;supply disruption
+emphasis|重點|noun|Business|normal|4|place emphasis;special emphasis
+empower|授權|verb|Business|green|3|empower employees;empower the team
+enhance|提升|verb|Business|normal|4|enhance quality;enhance efficiency
+establish|建立|verb|Business|normal|4|establish a branch;establish a policy
+exceptional|優秀的|adjective|Business|green|3|exceptional service;exceptional result
+expertise|專業知識|noun|Business|green|4|technical expertise;industry expertise
+favorable|有利的|adjective|Business|normal|3|favorable terms;favorable response
+feasible|可行的|adjective|Business|green|3|feasible plan;feasible option
+founder|創辦人|noun|Business|green|3|company founder;the founder announced
+framework|架構|noun|Business|green|4|policy framework;training framework
+implement|執行|verb|Business|normal|4|implement a policy;implement the plan
+implementation|執行|noun|Business|green|4|smooth implementation;system implementation
+indicator|指標|noun|Business|normal|4|key indicator;performance indicator
+influence|影響力|noun|Business|normal|4|market influence;global influence
+insufficient|不足的|adjective|Business|normal|3|insufficient funding;insufficient staff
+integrity|誠信|noun|Business|green|3|professional integrity;maintain integrity
+intervention|介入|noun|Business|blue|2|government intervention;early intervention
+justify|證明合理|verb|Business|green|3|justify the expense;justify the decision
+meaningful|有意義的|adjective|Business|normal|3|meaningful change;meaningful result
+monitoring|監控|noun|Business|green|3|real-time monitoring;continuous monitoring
+notable|值得注意的|adjective|Business|green|2|notable increase;notable success
+optimize|最佳化|verb|Business|green|3|optimize workflow;optimize operations
+outperform|表現優於|verb|Business|green|3|outperform rivals;outperform expectations
+oversee|監督|verb|Business|normal|4|oversee operations;oversee the project
+partially|部分地|adverb|Business|normal|3|partially completed;partially automated
+preliminary|初步的|adjective|Business|normal|3|preliminary report;preliminary review
+promptly|迅速地|adverb|Business|easy|3|respond promptly;act promptly
+prosperity|繁榮|noun|Business|blue|2|economic prosperity;shared prosperity
+reassure|使安心|verb|Business|green|3|reassure investors;reassure the team
+relevant|相關的|adjective|Business|easy|4|relevant data;relevant experience
+resilient|有韌性的|adjective|Business|green|3|resilient business;resilient system
+substantial|大量的|adjective|Business|green|3|substantial growth;substantial investment
+transparent|透明的|adjective|Business|green|3|transparent process;transparent policy
+unify|統一|verb|Business|green|3|unify the system;unify the team
+versatile|多功能的|adjective|Business|green|2|versatile tool;versatile employee
+`;
+
+const coreFinanceGrowthRows = `
+allocate|分配|verb|Finance|normal|4|allocate funds;allocate the budget
+allocation|分配|noun|Finance|normal|4|budget allocation;resource allocation
+assess|評估|verb|Finance|normal|4|assess the risk;assess the value
+authorize|授權|verb|Finance|normal|4|authorize payment;authorize the transfer
+bond|債券|noun|Finance|green|4|issue bonds;government bond
+borrower|借款人|noun|Banking|normal|4|contact the borrower;qualified borrower
+break-even|損益兩平的|adjective|Finance|green|3|break-even point;break-even analysis
+collection|收款|noun|Accounting|normal|4|debt collection;collection process
+collector|收款人員|noun|Accounting|green|2|call the collector;assigned collector
+costly|昂貴的|adjective|Finance|normal|3|costly mistake;costly delay
+coverage|保障範圍|noun|Insurance|normal|4|insurance coverage;coverage limit
+declaration|申報|noun|Accounting|green|3|tax declaration;customs declaration
+deduct|扣除|verb|Accounting|normal|4|deduct the fee;deduct the cost
+deferral|延後|noun|Accounting|green|3|tax deferral;payment deferral
+discrepancy|差異|noun|Accounting|normal|4|billing discrepancy;data discrepancy
+disposal|處分|noun|Finance|green|3|asset disposal;waste disposal
+diversified|多元化的|adjective|Finance|green|3|diversified portfolio;diversified revenue
+foreclosure|法拍|noun|Banking|blue|2|avoid foreclosure;foreclosure process
+grant|補助金|noun|Finance|normal|4|research grant;apply for a grant
+hedge|避險|verb|Finance|blue|2|hedge the risk;hedge currency exposure
+impairment|減損|noun|Accounting|blue|2|asset impairment;recognize impairment
+indebtedness|負債|noun|Finance|blue|2|reduce indebtedness;long-term indebtedness
+liquidation|清算|noun|Finance|blue|2|company liquidation;orderly liquidation
+markup|加價幅度|noun|Finance|normal|3|reduce the markup;standard markup
+net worth|淨值|noun|Finance|green|4|increase net worth;company net worth
+outstanding|未清償的|adjective|Finance|normal|3|outstanding balance;outstanding loan
+overdue|逾期的|adjective|Finance|easy|4|overdue payment;overdue invoice
+payroll tax|薪資稅|noun|Accounting|green|3|calculate payroll tax;pay payroll tax
+penalty fee|罰金|noun|Finance|normal|3|avoid a penalty fee;late penalty fee
+profit margin|利潤率|noun|Finance|green|4|improve profit margin;gross profit margin
+rebalance|重新平衡|verb|Finance|blue|2|rebalance the portfolio;rebalance assets
+repayment|償還|noun|Finance|normal|4|loan repayment;repayment schedule
+revenue stream|收入來源|noun|Finance|green|3|expand revenue streams;stable revenue stream
+settlement date|交割日|noun|Banking|green|3|confirm the settlement date;change the settlement date
+share price|股價|noun|Finance|green|3|monitor the share price;share price increase
+shortfall|短缺|noun|Finance|green|3|cover the shortfall;budget shortfall
+statement balance|帳單餘額|noun|Banking|normal|3|pay the statement balance;check the statement balance
+taxable|應稅的|adjective|Accounting|green|3|taxable income;taxable benefit
+underwrite|承保|verb|Finance|blue|2|underwrite the policy;underwrite the deal
+yearly budget|年度預算|noun|Finance|easy|4|approve the yearly budget;review the yearly budget
+yield rate|收益率|noun|Finance|green|3|compare yield rates;annual yield rate
+`;
+
+const operationsGrowthRows = `
+batch|批次|noun|Manufacturing|normal|4|inspect the batch;ship the batch
+consignee|收貨人|noun|Logistics|green|3|contact the consignee;named consignee
+consigner|寄貨人|noun|Logistics|green|3|confirm the consigner;overseas consigner
+container|貨櫃|noun|Logistics|normal|4|load the container;sealed container
+cross-dock|轉運分貨|verb|Logistics|blue|2|cross-dock the freight;cross-dock the goods
+cycle count|循環盤點|noun|Supply Chain|green|3|perform a cycle count;review cycle counts
+delivery note|送貨單|noun|Logistics|normal|3|check the delivery note;attach the delivery note
+dispatch note|派送單|noun|Logistics|green|3|prepare the dispatch note;review the dispatch note
+fulfillment center|履約中心|noun|Logistics|green|3|expand the fulfillment center;visit the fulfillment center
+handling fee|處理費|noun|Logistics|normal|3|charge a handling fee;reduce the handling fee
+inbound|入庫的|adjective|Logistics|normal|3|inbound shipment;inbound cargo
+inventory turnover|庫存周轉率|noun|Supply Chain|green|4|improve inventory turnover;annual inventory turnover
+lane|運輸路線|noun|Logistics|normal|3|open a new lane;international lane
+load plan|裝載計畫|noun|Logistics|green|3|review the load plan;change the load plan
+load sheet|裝載表|noun|Logistics|green|3|check the load sheet;print the load sheet
+material flow|物料流|noun|Manufacturing|green|3|improve material flow;analyze material flow
+merchandiser|商品管理人員|noun|Purchasing|green|2|contact the merchandiser;experienced merchandiser
+outbound|出貨的|adjective|Logistics|normal|3|outbound shipment;outbound order
+packing list|裝箱單|noun|Logistics|normal|4|attach the packing list;review the packing list
+pickup|取貨|noun|Logistics|easy|3|arrange a pickup;late pickup
+procurement plan|採購計畫|noun|Purchasing|green|3|prepare the procurement plan;update the procurement plan
+purchase order|採購訂單|noun|Purchasing|easy|5|issue a purchase order;revise the purchase order
+quantity|數量|noun|Purchasing|easy|4|confirm the quantity;adjust the quantity
+replenish|補貨|verb|Supply Chain|normal|4|replenish inventory;replenish the shelf
+replenishment|補貨|noun|Supply Chain|normal|4|automatic replenishment;timely replenishment
+reroute|改道|verb|Logistics|green|3|reroute the shipment;reroute the truck
+restock|補庫存|verb|Supply Chain|easy|4|restock the item;restock the warehouse
+return shipment|退貨出貨|noun|Logistics|normal|3|track the return shipment;process the return shipment
+safety stock|安全庫存|noun|Supply Chain|green|4|maintain safety stock;reduce safety stock
+shipping label|運送標籤|noun|Logistics|easy|3|print the shipping label;attach the shipping label
+slotting|儲位配置|noun|Logistics|blue|2|improve slotting;warehouse slotting
+sourcing plan|尋源計畫|noun|Purchasing|green|3|develop a sourcing plan;review the sourcing plan
+spec sheet|規格表|noun|Purchasing|normal|3|review the spec sheet;send the spec sheet
+stockout|缺貨|noun|Supply Chain|normal|4|avoid stockouts;unexpected stockout
+supplier audit|供應商稽核|noun|Purchasing|green|3|conduct a supplier audit;review the supplier audit
+supplier base|供應商基礎|noun|Purchasing|green|3|expand the supplier base;local supplier base
+tender|投標|noun|Purchasing|normal|4|submit a tender;review the tender
+throughput|吞吐量|noun|Logistics|green|3|increase throughput;daily throughput
+trace|追蹤|verb|Supply Chain|normal|4|trace the lot;trace the package
+transport|運輸|verb|Logistics|normal|4|transport the goods;transport the material
+transportation|運輸|noun|Logistics|normal|4|transportation cost;public transportation
+unit cost|單位成本|noun|Manufacturing|green|4|reduce unit cost;calculate unit cost
+vendor list|供應商名單|noun|Purchasing|normal|3|update the vendor list;approved vendor list
+volume discount|數量折扣|noun|Purchasing|normal|3|offer a volume discount;negotiate a volume discount
+warehousing|倉儲|noun|Logistics|green|3|modern warehousing;warehousing service
+work order|工單|noun|Manufacturing|normal|4|issue a work order;close the work order
+`;
+
+const manufacturingTechGrowthRows = `
+boiler|鍋爐|noun|Maintenance|normal|3|inspect the boiler;repair the boiler
+breakdown|故障|noun|Maintenance|normal|4|report the breakdown;prevent a breakdown
+chipset|晶片組|noun|Technology|green|2|test the chipset;new chipset
+cloud storage|雲端儲存|noun|Technology|normal|4|expand cloud storage;secure cloud storage
+compatibility test|相容性測試|noun|Technology|green|3|run a compatibility test;review the compatibility test
+compressor|壓縮機|noun|Maintenance|normal|3|repair the compressor;check the compressor
+controller|控制器|noun|Engineering|normal|4|replace the controller;digital controller
+coolant|冷卻液|noun|Maintenance|normal|3|refill the coolant;check the coolant
+database server|資料庫伺服器|noun|Technology|green|3|restart the database server;upgrade the database server
+debug|除錯|verb|Technology|normal|4|debug the software;debug the code
+diagnostic tool|診斷工具|noun|Maintenance|green|3|use the diagnostic tool;portable diagnostic tool
+effluent|廢液|noun|Manufacturing|blue|2|treat the effluent;monitor the effluent
+emission level|排放水平|noun|Manufacturing|green|3|reduce emission levels;record the emission level
+encrypt|加密|verb|Technology|green|4|encrypt the data;encrypt the file
+encryption key|加密金鑰|noun|Technology|green|3|store the encryption key;rotate the encryption key
+firmware|韌體|noun|Technology|green|3|update the firmware;install new firmware
+gateway|閘道器|noun|Technology|normal|3|check the gateway;network gateway
+gearbox|變速箱|noun|Maintenance|green|2|repair the gearbox;inspect the gearbox
+inspection record|檢驗紀錄|noun|Quality Control|normal|3|file the inspection record;review the inspection record
+interface cable|介面線材|noun|Engineering|green|2|replace the interface cable;check the interface cable
+latency|延遲|noun|Technology|green|3|reduce latency;network latency
+maintenance log|維護紀錄|noun|Maintenance|normal|3|update the maintenance log;review the maintenance log
+mechanism|機構|noun|Engineering|normal|3|adjust the mechanism;test the mechanism
+microprocessor|微處理器|noun|Technology|blue|2|test the microprocessor;new microprocessor
+modem|數據機|noun|Technology|easy|3|restart the modem;replace the modem
+network outage|網路中斷|noun|Technology|normal|3|report the network outage;resolve the network outage
+parameter|參數|noun|Engineering|normal|4|adjust the parameter;review the parameter
+patch|修補程式|noun|Technology|normal|4|install the patch;security patch
+peripheral|周邊設備|noun|Technology|normal|3|connect the peripheral;replace the peripheral
+power supply|電源供應器|noun|Engineering|normal|3|replace the power supply;check the power supply
+quality assurance|品質保證|noun|Quality Control|normal|4|improve quality assurance;quality assurance team
+router|路由器|noun|Technology|easy|3|restart the router;wireless router
+runtime|執行時間|noun|Technology|green|2|monitor runtime;average runtime
+scalability|可擴充性|noun|Technology|green|3|improve scalability;system scalability
+server rack|伺服器機櫃|noun|Technology|green|2|install the server rack;check the server rack
+shutdown procedure|停機程序|noun|Maintenance|normal|3|follow the shutdown procedure;review the shutdown procedure
+software license|軟體授權|noun|Technology|normal|4|renew the software license;verify the software license
+specification sheet|規格書|noun|Engineering|normal|3|send the specification sheet;check the specification sheet
+surveillance|監測|noun|Quality Control|green|3|quality surveillance;continuous surveillance
+system upgrade|系統升級|noun|Technology|normal|4|schedule the system upgrade;complete the system upgrade
+troubleshooting guide|故障排除指南|noun|Maintenance|green|3|follow the troubleshooting guide;update the troubleshooting guide
+validation|驗證|noun|Quality Control|green|4|system validation;process validation
+ventilation|通風|noun|Maintenance|normal|3|improve ventilation;factory ventilation
+version control|版本控制|noun|Technology|green|3|use version control;version control system
+wireless|無線的|adjective|Technology|easy|3|wireless connection;wireless network
+`;
+
+const travelServiceGrowthRows = `
+arrival gate|抵達登機門|noun|Airport|easy|3|wait at the arrival gate;confirm the arrival gate
+baggage carousel|行李轉盤|noun|Airport|normal|3|go to the baggage carousel;wait at the baggage carousel
+boarding area|登機區|noun|Airport|easy|3|enter the boarding area;clean the boarding area
+booking reference|訂位代碼|noun|Travel|normal|3|check the booking reference;enter the booking reference
+check-in counter|報到櫃台|noun|Airport|easy|4|go to the check-in counter;open the check-in counter
+complimentary|免費招待的|adjective|Hotel|normal|3|complimentary breakfast;complimentary shuttle
+connection|轉機航班|noun|Travel|normal|3|miss the connection;short connection
+customs form|海關表格|noun|Airport|easy|3|fill out the customs form;review the customs form
+departure board|出發看板|noun|Airport|easy|3|check the departure board;update the departure board
+double room|雙人房|noun|Hotel|easy|3|book a double room;prepare the double room
+excursion|短程旅遊|noun|Travel|normal|3|join the excursion;guided excursion
+fare adjustment|票價調整|noun|Travel|green|3|request a fare adjustment;fare adjustment notice
+guestroom|客房|noun|Hotel|easy|3|clean the guestroom;enter the guestroom
+itinerary change|行程變更|noun|Travel|normal|3|confirm the itinerary change;itinerary change notice
+landing|降落|noun|Airport|easy|3|safe landing;landing time
+late checkout|延後退房|noun|Hotel|normal|3|request late checkout;approve late checkout
+lounge access|貴賓室使用權|noun|Airport|green|3|offer lounge access;check lounge access
+meal voucher|餐券|noun|Dining|easy|3|use the meal voucher;issue a meal voucher
+menu item|菜單項目|noun|Dining|easy|3|remove a menu item;popular menu item
+occupancy rate|住房率|noun|Hotel|green|3|increase occupancy rate;hotel occupancy rate
+one-way|單程的|adjective|Travel|easy|3|one-way ticket;one-way trip
+overnight stay|過夜停留|noun|Travel|normal|3|arrange an overnight stay;unexpected overnight stay
+passport control|護照查驗|noun|Airport|normal|3|pass passport control;airport passport control
+refreshment|茶點|noun|Dining|easy|3|serve refreshments;light refreshment
+round-trip|來回的|adjective|Travel|easy|4|round-trip ticket;round-trip flight
+seat assignment|座位分配|noun|Airport|normal|3|confirm the seat assignment;change the seat assignment
+security checkpoint|安檢站|noun|Airport|easy|4|go through the security checkpoint;busy security checkpoint
+shuttle bus|接駁巴士|noun|Travel|easy|4|take the shuttle bus;free shuttle bus
+single room|單人房|noun|Hotel|easy|3|reserve a single room;prepare the single room
+standby|候補的|adjective|Airport|normal|3|standby passenger;standby ticket
+table reservation|訂位|noun|Dining|easy|4|confirm the table reservation;cancel the table reservation
+terminal map|航廈地圖|noun|Airport|easy|3|check the terminal map;print the terminal map
+tour package|旅遊套裝|noun|Travel|normal|3|promote the tour package;review the tour package
+transit desk|轉機櫃台|noun|Airport|normal|3|visit the transit desk;staff the transit desk
+upgrade request|升等申請|noun|Travel|normal|3|submit an upgrade request;approve the upgrade request
+vacancy rate|空房率|noun|Hotel|green|2|monitor vacancy rate;high vacancy rate
+window seat|靠窗座位|noun|Airport|easy|3|request a window seat;assign a window seat
+`;
+
+const peopleSupportGrowthRows = `
+attendance sheet|簽到表|noun|Meeting|easy|3|check the attendance sheet;print the attendance sheet
+briefing note|簡報備忘錄|noun|Meeting|normal|3|prepare the briefing note;review the briefing note
+chair|主持|verb|Meeting|normal|3|chair the meeting;chair the session
+discussion point|討論重點|noun|Meeting|easy|3|list the discussion point;review each discussion point
+facilitation|引導|noun|Meeting|green|3|effective facilitation;meeting facilitation
+follow-up task|後續任務|noun|Meeting|easy|3|assign the follow-up task;complete the follow-up task
+introductory|介紹性的|adjective|Meeting|normal|2|introductory session;introductory remarks
+invitee|受邀者|noun|Meeting|normal|2|confirm the invitee;notify the invitee
+moderate|主持|verb|Meeting|normal|3|moderate the discussion;moderate the panel
+opening remarks|開場致詞|noun|Meeting|easy|3|deliver the opening remarks;prepare the opening remarks
+participant list|參與者名單|noun|Meeting|easy|3|update the participant list;check the participant list
+post-meeting|會後的|adjective|Meeting|green|2|post-meeting summary;post-meeting review
+presentation slide|簡報投影片|noun|Meeting|easy|3|revise the presentation slide;prepare the presentation slide
+question period|提問時間|noun|Meeting|easy|3|begin the question period;extend the question period
+reschedule notice|改期通知|noun|Meeting|normal|3|send the reschedule notice;review the reschedule notice
+speaking slot|發言時段|noun|Meeting|normal|2|confirm the speaking slot;change the speaking slot
+applicant pool|應徵者池|noun|Human Resources|normal|3|expand the applicant pool;qualified applicant pool
+career path|職涯路徑|noun|Human Resources|normal|3|discuss the career path;clear career path
+compensate|補償|verb|Human Resources|normal|3|compensate employees;compensate the worker
+disciplinary|紀律相關的|adjective|Human Resources|green|2|disciplinary action;disciplinary policy
+eligibility|資格|noun|Human Resources|normal|4|check eligibility;eligibility requirement
+headhunter|獵人頭顧問|noun|Human Resources|green|2|contact the headhunter;experienced headhunter
+induction|新進教育|noun|Human Resources|normal|3|employee induction;complete induction
+job opening|職缺|noun|Human Resources|easy|4|post the job opening;fill the job opening
+orientation session|新人說明會|noun|Human Resources|normal|3|attend the orientation session;orientation session schedule
+placement test|分級測驗|noun|Human Resources|normal|3|take the placement test;review the placement test
+promotion track|晉升路徑|noun|Human Resources|green|3|create a promotion track;clear promotion track
+reassignment|重新指派|noun|Human Resources|green|3|approve the reassignment;temporary reassignment
+severance|資遣費|noun|Human Resources|green|3|calculate severance;severance payment
+skillset|技能組合|noun|Human Resources|normal|3|expand the skillset;required skillset
+training module|培訓模組|noun|Human Resources|normal|3|complete the training module;update the training module
+vacation leave|休假|noun|Human Resources|easy|4|request vacation leave;approve vacation leave
+`;
+
+const customerSalesContractGrowthRows = `
+after-sales|售後的|adjective|Sales|normal|3|after-sales service;after-sales support
+annual renewal|年度續約|noun|Sales|normal|3|confirm the annual renewal;annual renewal notice
+bundled|綑綁銷售的|adjective|Sales|green|2|bundled package;bundled service
+client account|客戶帳戶|noun|Sales|easy|3|review the client account;update the client account
+closing rate|成交率|noun|Sales|green|3|improve the closing rate;monthly closing rate
+contract term|合約條款|noun|Contract|normal|4|review the contract term;change the contract term
+counteroffer|還價方案|noun|Sales|green|3|make a counteroffer;reject the counteroffer
+cross-sell|交叉銷售|verb|Sales|green|3|cross-sell the service;cross-sell products
+deal closure|成交完成|noun|Sales|green|2|speed up deal closure;deal closure report
+discount code|折扣碼|noun|Sales|easy|3|apply the discount code;share the discount code
+eligibility clause|資格條款|noun|Contract|green|2|review the eligibility clause;add an eligibility clause
+endorsement|背書|noun|Contract|green|3|obtain endorsement;written endorsement
+exclusive|獨家的|adjective|Contract|normal|3|exclusive contract;exclusive rights
+expiration notice|到期通知|noun|Contract|normal|3|send the expiration notice;review the expiration notice
+grace period|寬限期|noun|Contract|normal|3|extend the grace period;within the grace period
+incentive plan|獎勵方案|noun|Sales|normal|3|launch the incentive plan;review the incentive plan
+loyalty program|忠誠方案|noun|Sales|normal|3|join the loyalty program;expand the loyalty program
+nonrefundable|不可退款的|adjective|Contract|normal|3|nonrefundable fee;nonrefundable deposit
+objection|異議|noun|Sales|normal|3|handle the objection;customer objection
+onboarding call|導入通話|noun|Customer Service|normal|3|schedule the onboarding call;complete the onboarding call
+outreach campaign|推廣活動|noun|Marketing|green|3|launch the outreach campaign;review the outreach campaign
+price adjustment|價格調整|noun|Sales|normal|3|announce the price adjustment;request a price adjustment
+pricing tier|價格級距|noun|Sales|green|3|change the pricing tier;entry pricing tier
+prospective|潛在的|adjective|Sales|normal|3|prospective buyer;prospective client
+renew|續約|verb|Contract|easy|4|renew the contract;renew the license
+renewable|可續約的|adjective|Contract|green|2|renewable term;renewable agreement
+sales pitch|銷售簡報|noun|Sales|normal|3|practice the sales pitch;improve the sales pitch
+service desk|服務台|noun|Customer Service|easy|4|visit the service desk;call the service desk
+service outage|服務中斷|noun|Customer Service|normal|3|report the service outage;resolve the service outage
+settlement offer|和解方案|noun|Contract|green|3|accept the settlement offer;final settlement offer
+subscription plan|訂閱方案|noun|Sales|normal|3|compare subscription plans;change the subscription plan
+support ticket|客服單|noun|Customer Service|easy|4|open a support ticket;close a support ticket
+trial period|試用期|noun|Sales|easy|3|extend the trial period;free trial period
+upsell opportunity|加購機會|noun|Sales|green|2|identify the upsell opportunity;new upsell opportunity
+user feedback|使用者回饋|noun|Customer Service|easy|4|collect user feedback;review user feedback
+valid through|有效至|adjective|Contract|normal|3|valid through June;valid through next year
+warranty claim|保固申請|noun|Customer Service|normal|3|process the warranty claim;reject the warranty claim
+`;
+
+const secondaryThemeGrowthRows = `
+ad campaign|廣告活動|noun|Marketing|normal|3|launch the ad campaign;review the ad campaign
+audience reach|觸及人數|noun|Marketing|green|2|increase audience reach;measure audience reach
+brand loyalty|品牌忠誠度|noun|Marketing|green|3|improve brand loyalty;strong brand loyalty
+broaden|擴大|verb|Marketing|normal|3|broaden the market;broaden the appeal
+click-through|點擊率|noun|Marketing|green|3|improve click-through;high click-through rate
+feature|特色|noun|Marketing|easy|4|highlight the feature;new feature
+headline|標題|noun|Marketing|normal|3|rewrite the headline;short headline
+launch event|發表活動|noun|Marketing|normal|3|plan the launch event;successful launch event
+patient care|病患照護|noun|Healthcare|normal|3|improve patient care;quality patient care
+recovery room|恢復室|noun|Healthcare|normal|2|wait in the recovery room;clean the recovery room
+screening test|篩檢測試|noun|Healthcare|normal|3|take the screening test;review the screening test
+software rollout|軟體上線|noun|Technology|green|3|plan the software rollout;successful software rollout
+spam filter|垃圾郵件過濾器|noun|Email|easy|3|update the spam filter;email spam filter
+survey response|問卷回覆|noun|Customer Service|easy|3|analyze survey responses;low survey response
+user account|使用者帳戶|noun|Technology|easy|4|create the user account;lock the user account
+version update|版本更新|noun|Technology|easy|4|install the version update;latest version update
+visitor pass|訪客證|noun|Office|easy|3|issue the visitor pass;temporary visitor pass
+wire transfer|電匯|noun|Banking|normal|4|make a wire transfer;international wire transfer
+workspace booking|工位預約|noun|Office|normal|2|confirm workspace booking;shared workspace booking
+`;
+
+const phaseTwoSingleWordRows = `
+administrator|管理人員|noun|Office|normal|4|contact the administrator;office administrator
+adviser|顧問|noun|Business|normal|4|consult the adviser;financial adviser
+advocate|提倡|verb|Business|green|3|advocate the policy;advocate change
+appointee|被任命者|noun|Business|green|2|meet the appointee;new appointee
+assembler|裝配員|noun|Manufacturing|normal|3|train the assembler;skilled assembler
+attachment|附件|noun|Email|easy|4|open the attachment;email attachment
+attorney|律師|noun|Contract|normal|3|contact the attorney;consult the attorney
+backlog|待處理量|noun|Project Management|normal|4|review the backlog;reduce the backlog
+beneficiary|受益人|noun|Banking|green|3|confirm the beneficiary;named beneficiary
+booth|攤位|noun|Marketing|easy|3|set up the booth;visit the booth
+brochure|手冊|noun|Travel|easy|3|read the brochure;travel brochure
+cargo|貨物|noun|Logistics|normal|4|load the cargo;air cargo
+catalogue|型錄|noun|Purchasing|normal|3|request the catalogue;product catalogue
+caution|謹慎|noun|Business|normal|3|exercise caution;extra caution
+cautious|謹慎的|adjective|Business|normal|3|cautious approach;cautious investor
+certify|認證|verb|Quality Control|green|3|certify the product;certify the result
+claimant|申請人|noun|Insurance|green|3|contact the claimant;insurance claimant
+cluster|群組|noun|Technology|green|2|server cluster;data cluster
+coding|編碼|noun|Technology|normal|3|coding standard;secure coding
+coordinator|協調員|noun|Business|normal|4|project coordinator;contact the coordinator
+correspondence|往來文件|noun|Office|normal|4|business correspondence;review the correspondence
+courtesy|禮貌|noun|Customer Service|easy|4|show courtesy;professional courtesy
+crate|板條箱|noun|Logistics|normal|3|pack the crate;wooden crate
+custodian|保管人|noun|Finance|green|2|contact the custodian;asset custodian
+debit|借記|noun|Banking|easy|4|debit entry;debit transaction
+deduction|扣除額|noun|Accounting|normal|4|tax deduction;claim a deduction
+defective|有瑕疵的|adjective|Quality Control|normal|4|defective item;defective product
+delegate|委派|verb|Project Management|normal|4|delegate the task;delegate authority
+designation|職稱|noun|Human Resources|normal|3|official designation;job designation
+detector|感測器|noun|Engineering|green|2|smoke detector;install the detector
+directive|指示|noun|Business|normal|4|company directive;follow the directive
+disburse|撥付|verb|Accounting|green|3|disburse funds;disburse payment
+disclose|揭露|verb|Finance|green|3|disclose the fee;disclose information
+dispatcher|調度員|noun|Logistics|green|3|contact the dispatcher;night dispatcher
+durable|耐用的|adjective|Manufacturing|normal|3|durable material;durable product
+eligibility|資格|noun|Customer Service|normal|4|check eligibility;eligibility rule
+endorse|背書|verb|Contract|green|3|endorse the check;endorse the agreement
+expedite|加速處理|verb|Logistics|green|3|expedite the order;expedite shipping
+facilitator|引導者|noun|Meeting|normal|3|ask the facilitator;session facilitator
+firewall|防火牆|noun|Technology|normal|4|configure the firewall;network firewall
+flyer|傳單|noun|Marketing|easy|3|print the flyer;promotional flyer
+forklift|堆高機|noun|Logistics|normal|3|operate the forklift;repair the forklift
+formulate|擬定|verb|Business|green|3|formulate a plan;formulate the strategy
+foundational|基礎的|adjective|Business|green|2|foundational skill;foundational training
+freighter|貨運機|noun|Logistics|green|2|cargo freighter;board the freighter
+gasket|墊片|noun|Maintenance|green|2|replace the gasket;rubber gasket
+grievance|申訴|noun|Human Resources|green|3|file a grievance;employee grievance
+guaranty|保證|noun|Banking|blue|2|personal guaranty;written guaranty
+handbook|手冊|noun|Human Resources|normal|3|employee handbook;read the handbook
+harness|線束|noun|Engineering|green|2|wire harness;check the harness
+hosting|主機代管|noun|Technology|green|2|web hosting;hosting service
+illustrate|說明|verb|Business|normal|3|illustrate the trend;illustrate the point
+incentivize|激勵|verb|Human Resources|green|2|incentivize employees;incentivize sales
+inquiry|詢問|noun|Customer Service|easy|4|customer inquiry;answer the inquiry
+inspector|檢查員|noun|Quality Control|normal|3|safety inspector;meet the inspector
+installer|安裝人員|noun|Maintenance|green|2|certified installer;contact the installer
+landmark|地標|noun|Travel|easy|3|local landmark;visit the landmark
+lender|貸方|noun|Banking|normal|4|private lender;contact the lender
+leaflet|小冊子|noun|Marketing|easy|3|promotional leaflet;distribute the leaflet
+luggage|行李|noun|Travel|easy|4|carry luggage;lost luggage
+machinist|機械技師|noun|Manufacturing|green|2|experienced machinist;hire a machinist
+mediator|調解人|noun|Contract|green|2|neutral mediator;appoint a mediator
+merchandising|商品陳列|noun|Sales|green|3|visual merchandising;improve merchandising
+newsletter|電子報|noun|Marketing|easy|4|monthly newsletter;subscribe to the newsletter
+notebook|筆記本|noun|Office|easy|3|bring a notebook;write in the notebook
+operator|操作員|noun|Manufacturing|normal|4|machine operator;contact the operator
+optional|可選的|adjective|Business|easy|3|optional service;optional feature
+outsource|外包|verb|Business|green|3|outsource the task;outsource production
+pallet|棧板|noun|Logistics|normal|3|wooden pallet;stack the pallet
+paperless|無紙化的|adjective|Office|green|2|paperless process;paperless office
+paycheck|薪資支票|noun|Human Resources|easy|3|collect the paycheck;monthly paycheck
+planner|規劃人員|noun|Project Management|normal|3|event planner;project planner
+portable|可攜式的|adjective|Technology|easy|3|portable device;portable scanner
+postpone|延期|verb|Meeting|easy|4|postpone the meeting;postpone the launch
+precise|精確的|adjective|Engineering|normal|3|precise measurement;precise result
+prioritize|排定優先順序|verb|Project Management|normal|4|prioritize the tasks;prioritize safety
+publicize|宣傳|verb|Marketing|normal|3|publicize the event;publicize the program
+punctual|準時的|adjective|Human Resources|easy|3|punctual employee;punctual arrival
+qualifier|資格條件|noun|Sales|green|2|lead qualifier;basic qualifier
+reactor|反應器|noun|Engineering|blue|2|industrial reactor;inspect the reactor
+readiness|準備度|noun|Business|green|3|readiness review;system readiness
+receptionist|接待員|noun|Office|easy|4|ask the receptionist;front-desk receptionist
+redemption|贖回|noun|Finance|blue|2|bond redemption;early redemption
+refinery|煉製廠|noun|Manufacturing|blue|2|oil refinery;visit the refinery
+registrar|登記員|noun|Office|green|2|contact the registrar;office registrar
+relay|繼電器|noun|Engineering|green|2|replace the relay;test the relay
+reusable|可重複使用的|adjective|Manufacturing|normal|3|reusable container;reusable part
+reviewer|審查者|noun|Business|normal|3|external reviewer;contact the reviewer
+runway|跑道|noun|Airport|easy|3|clear the runway;runway closure
+scaffold|鷹架|noun|Maintenance|green|2|set up the scaffold;inspect the scaffold
+shipper|託運人|noun|Logistics|green|3|contact the shipper;registered shipper
+solder|焊接|verb|Manufacturing|green|2|solder the joint;solder the wire
+socket|插座|noun|Maintenance|easy|3|check the socket;replace the socket
+souvenir|紀念品|noun|Travel|easy|2|buy a souvenir;gift souvenir
+specialty|專長|noun|Business|normal|3|area of specialty;technical specialty
+stabilizer|穩定器|noun|Engineering|green|2|install the stabilizer;replace the stabilizer
+streamline|簡化|verb|Business|green|3|streamline the process;streamline operations
+supervision|監督|noun|Human Resources|normal|4|close supervision;under supervision
+testimonial|推薦證詞|noun|Marketing|green|3|client testimonial;video testimonial
+timetable|時刻表|noun|Travel|easy|3|train timetable;check the timetable
+trainer|培訓師|noun|Human Resources|normal|3|senior trainer;meet the trainer
+turbine|渦輪機|noun|Engineering|green|2|inspect the turbine;gas turbine
+validator|驗證人員|noun|Quality Control|blue|2|system validator;contact the validator
+visibility|能見度|noun|Marketing|green|3|brand visibility;increase visibility
+voyage|航程|noun|Travel|normal|3|business voyage;long voyage
+waiter|服務生|noun|Dining|easy|3|call the waiter;friendly waiter
+webinar|線上研討會|noun|Meeting|easy|3|host the webinar;join the webinar
+workforce|勞動力|noun|Human Resources|green|4|global workforce;skilled workforce
+workshop|工作坊|noun|Meeting|easy|4|attend the workshop;host the workshop
+`;
+
 export const supplementalVocabularySeeds = [
   ...parseSeedRows(officeRows),
   ...parseSeedRows(businessRows),
@@ -905,4 +1373,13 @@ export const supplementalVocabularySeeds = [
   ...parseSeedRows(salesRows),
   ...parseSeedRows(contractRows),
   ...parseSeedRows(emailRows),
+  ...parseSeedRows(coreBusinessGrowthRows),
+  ...parseSeedRows(coreFinanceGrowthRows),
+  ...parseSeedRows(operationsGrowthRows),
+  ...parseSeedRows(manufacturingTechGrowthRows),
+  ...parseSeedRows(travelServiceGrowthRows),
+  ...parseSeedRows(peopleSupportGrowthRows),
+  ...parseSeedRows(customerSalesContractGrowthRows),
+  ...parseSeedRows(secondaryThemeGrowthRows),
+  ...parseSeedRows(phaseTwoSingleWordRows),
 ];
