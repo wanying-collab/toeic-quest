@@ -78,7 +78,7 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
 
       {word.synonyms?.length > 0 && (
         <div className="vocab-block">
-          <strong>同義字</strong>
+          <strong>Synonyms 同義字</strong>
           <div className="chip-list">
             {word.synonyms.map((item) => (
               <span key={item} className="chip soft">
@@ -89,9 +89,22 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
         </div>
       )}
 
+      {word.antonyms?.length > 0 && (
+        <div className="vocab-block">
+          <strong>Antonyms 反義字</strong>
+          <div className="chip-list">
+            {word.antonyms.map((item) => (
+              <span key={item} className="chip soft">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {word.relatedWords?.length > 0 && (
         <div className="vocab-block">
-          <strong>相關字</strong>
+          <strong>Related Words 相關字</strong>
           <div className="chip-list">
             {word.relatedWords.map((item) => (
               <span key={item} className="chip soft">
@@ -117,12 +130,67 @@ function VocabularyCard({ word, isFavorite, progress, onToggleFavorite, onSpeak 
 
       {word.roots?.length > 0 && (
         <div className="vocab-block">
-          <strong>Roots & Prefixes</strong>
+          <strong>Roots &amp; Prefixes</strong>
           <ul className="compact-list">
             {word.roots.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {word.toeicTips && (
+        <div className="vocab-block tip-panel">
+          <strong>TOEIC Tips 考點提醒</strong>
+          <div className="tips-grid">
+            {word.toeicTips.commonSections?.length > 0 && (
+              <div className="tip-item">
+                <span>常出現題型</span>
+                <div className="chip-list">
+                  {word.toeicTips.commonSections.map((item) => (
+                    <span key={item} className="chip soft">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {word.toeicTips.commonContexts?.length > 0 && (
+              <div className="tip-item">
+                <span>常見情境</span>
+                <div className="chip-list">
+                  {word.toeicTips.commonContexts.map((item) => (
+                    <span key={item} className="chip soft">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {word.toeicTips.confusableWords?.length > 0 && (
+              <div className="tip-item">
+                <span>易混淆字</span>
+                <div className="chip-list">
+                  {word.toeicTips.confusableWords.map((item) => (
+                    <span key={item} className="chip soft">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {word.toeicTips.reminder && <p className="tip-note">{word.toeicTips.reminder}</p>}
+        </div>
+      )}
+
+      {word.memoryTip && (
+        <div className="vocab-block tip-panel">
+          <strong>Memory Tip 記憶技巧</strong>
+          <p className="tip-note">{word.memoryTip}</p>
         </div>
       )}
 

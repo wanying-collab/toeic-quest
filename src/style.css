@@ -552,6 +552,35 @@ pre {
   gap: 8px;
 }
 
+.tip-panel {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(240, 248, 255, 0.88);
+  border: 1px solid rgba(17, 58, 92, 0.08);
+}
+
+.tips-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.tip-item {
+  display: grid;
+  gap: 8px;
+}
+
+.tip-item span {
+  color: #5b7b93;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.tip-note {
+  margin: 0;
+  color: #32556f;
+  line-height: 1.7;
+}
+
 .chip {
   padding: 8px 12px;
   border-radius: 999px;

@@ -8,6 +8,7 @@ import {
   vocabularyThemes,
   wordQualityProfiles,
 } from "./catalog.js";
+import { highFrequencyVocabularyProfiles } from "./high-frequency-profiles.js";
 
 const themeLabelByCategory = {
   Office: "Office English",
@@ -192,6 +193,15 @@ const approvedFamilyWordSet = new Set(
   ),
 );
 
+const highFrequencyProfileMap = Object.fromEntries(
+  Object.entries(highFrequencyVocabularyProfiles).map(([word, profile]) => [headwordOf(word), profile]),
+);
+
+const mergedWordQualityProfiles = {
+  ...wordQualityProfiles,
+  ...highFrequencyProfileMap,
+};
+
 const canonicalSeedMap = normalizedSeeds.reduce((map, seed) => {
   const key = headwordOf(seed.word);
   const current = map.get(key);
@@ -213,6 +223,222 @@ function buildPronunciation(word, profilePronunciation, fallbackPronunciation) {
 
 function buildTheme(category) {
   return themeLabelByCategory[category] ?? "Business English";
+}
+
+const topPriorityWordSet = new Set(
+  [...canonicalSeedMap.values()]
+    .sort((left, right) => (right.frequency - left.frequency) || left.word.localeCompare(right.word))
+    .slice(0, 200)
+    .map((item) => headwordOf(item.word)),
+);
+
+const toeicCategoryTips = {
+  Office: {
+    commonSections: ["Part 5", "Part 6", "Part 7"],
+    commonContexts: ["Email", "Notice", "Schedule"],
+    reminder: "辦公室字常出現在公告、會議安排與日常行政流程中。",
+  },
+  Meeting: {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["Meeting", "Agenda", "Announcement"],
+    reminder: "注意時間、地點與下一步行動，通常是會議題的關鍵。",
+  },
+  Business: {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Report", "Business Email", "Announcement"],
+    reminder: "商務字常搭配 growth、strategy、performance、plan 一起考。",
+  },
+  "Corporate Development": {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Press Release", "Business News", "Investor Briefing"],
+    reminder: "看到公司擴張、收購、整併相關字時，要注意商業策略與投資情境。",
+  },
+  Finance: {
+    commonSections: ["Part 5", "Part 6", "Part 7"],
+    commonContexts: ["Invoice", "Payment", "Financial Report"],
+    reminder: "財務字常和 payment、cost、budget、revenue、profit 一起出現。",
+  },
+  Accounting: {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Statement", "Closing Report", "Expense Form"],
+    reminder: "會計題常考報表、費用、折舊與資產負債概念。",
+  },
+  Banking: {
+    commonSections: ["Part 2", "Part 5", "Part 7"],
+    commonContexts: ["Bank Notice", "Loan", "Card Payment"],
+    reminder: "銀行字常和 account、loan、interest、statement、card 一起看。",
+  },
+  Insurance: {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Policy", "Claim", "Coverage"],
+    reminder: "保險題常考 premium、coverage、claim、deductible 的差異。",
+  },
+  Purchasing: {
+    commonSections: ["Part 5", "Part 6", "Part 7"],
+    commonContexts: ["Quotation", "Vendor Email", "Purchase Order"],
+    reminder: "採購字常和 supplier、quotation、order、price、delivery 連動出現。",
+  },
+  Logistics: {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["Shipping", "Warehouse", "Delivery Notice"],
+    reminder: "物流題要抓 shipment、warehouse、carrier、delivery、tracking。",
+  },
+  "Supply Chain": {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["Shipment", "Inventory", "Supplier Update"],
+    reminder: "供應鏈字常和 lead time、inventory、supplier、distribution 一起出現。",
+  },
+  Manufacturing: {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["Factory Report", "Maintenance", "Production"],
+    reminder: "製造情境常考 production line、equipment、capacity、raw material。",
+  },
+  Maintenance: {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["Repair Notice", "Maintenance Log", "Inspection"],
+    reminder: "維修題常抓 downtime、repair、inspection、schedule 這幾類關鍵字。",
+  },
+  "Quality Control": {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Inspection Report", "Factory Memo", "Defect Notice"],
+    reminder: "品管題要注意 defect、inspection、quality control、standard 之間的關係。",
+  },
+  Engineering: {
+    commonSections: ["Part 4", "Part 7"],
+    commonContexts: ["Specification", "Blueprint", "System Setup"],
+    reminder: "工程字常出現在規格、設備、校正與系統設定情境中。",
+  },
+  Technology: {
+    commonSections: ["Part 3", "Part 4", "Part 7"],
+    commonContexts: ["System Update", "Help Desk", "Security Notice"],
+    reminder: "科技題常抓 system、access、backup、configuration、security。",
+  },
+  Marketing: {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Campaign", "Promotion", "Market Report"],
+    reminder: "行銷字常和 campaign、brand、market share、consumer 一起出現。",
+  },
+  Sales: {
+    commonSections: ["Part 2", "Part 3", "Part 7"],
+    commonContexts: ["Sales Call", "Forecast", "Client Visit"],
+    reminder: "業務題常搭配 prospect、proposal、sale、forecast、commission。",
+  },
+  "Customer Service": {
+    commonSections: ["Part 2", "Part 3", "Part 7"],
+    commonContexts: ["Customer Email", "Complaint", "Refund"],
+    reminder: "客服題要看清問題、處理方式與後續跟進動作。",
+  },
+  Contract: {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Agreement", "Amendment", "Legal Notice"],
+    reminder: "合約字常和 term、renewal、confidentiality、approval 一起考。",
+  },
+  Email: {
+    commonSections: ["Part 6", "Part 7"],
+    commonContexts: ["Email", "Attachment", "Confirmation"],
+    reminder: "Email 題通常要抓收件目的、附件內容與下一步動作。",
+  },
+  Travel: {
+    commonSections: ["Part 2", "Part 3", "Part 7"],
+    commonContexts: ["Itinerary", "Reservation", "Travel Notice"],
+    reminder: "旅行字常和 schedule、reservation、itinerary、cancellation 一起出現。",
+  },
+  Hotel: {
+    commonSections: ["Part 2", "Part 3", "Part 7"],
+    commonContexts: ["Hotel Email", "Reservation", "Front Desk"],
+    reminder: "住宿題常考 room、reservation、guest、check-in、service。",
+  },
+  Airport: {
+    commonSections: ["Part 2", "Part 3", "Part 7"],
+    commonContexts: ["Boarding", "Gate Notice", "Flight Change"],
+    reminder: "機場題先聽懂 gate、boarding、arrival、departure 這些字。",
+  },
+  Dining: {
+    commonSections: ["Part 2", "Part 7"],
+    commonContexts: ["Restaurant Notice", "Menu", "Reservation"],
+    reminder: "餐飲題常和 meal、reservation、service、guest experience 有關。",
+  },
+  Entertainment: {
+    commonSections: ["Part 3", "Part 7"],
+    commonContexts: ["Event", "Ticket", "Venue Notice"],
+    reminder: "活動題常抓時間、地點、票務與入場安排。",
+  },
+  "Human Resources": {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: ["Hiring", "Appraisal", "Training"],
+    reminder: "人資字常和 applicant、training、appraisal、benefit 一起出現。",
+  },
+  Healthcare: {
+    commonSections: ["Part 2", "Part 7"],
+    commonContexts: ["Clinic", "Consultation", "Prescription"],
+    reminder: "醫療情境常考 appointment、consultation、prescription、insurance。",
+  },
+};
+
+const confusingWordMap = {
+  invoice: ["receipt", "quotation", "bill"],
+  quotation: ["invoice", "receipt", "estimate"],
+  receipt: ["invoice", "quotation", "refund"],
+  asset: ["liability", "equity", "expense"],
+  liability: ["asset", "equity", "expense"],
+  equity: ["asset", "liability", "stock"],
+  procurement: ["purchase order", "quotation", "supplier"],
+  shipment: ["delivery", "cargo", "warehouse"],
+  warehouse: ["inventory", "shipment", "distribution center"],
+  itinerary: ["schedule", "reservation", "boarding"],
+  premium: ["fee", "coverage", "claim"],
+  proposal: ["quotation", "plan", "contract"],
+};
+
+function buildToeicTips(seed, profile) {
+  if (profile.toeicTips) {
+    return profile.toeicTips;
+  }
+
+  if (!topPriorityWordSet.has(headwordOf(seed.word))) {
+    return null;
+  }
+
+  const categoryTips = toeicCategoryTips[seed.category] ?? {
+    commonSections: ["Part 5", "Part 7"],
+    commonContexts: [seed.category, buildTheme(seed.category).replace(" English", "")],
+    reminder: `${seed.word} 常出現在 ${seed.category} 相關情境中，先看搭配詞再判斷意思。`,
+  };
+
+  return {
+    commonSections: categoryTips.commonSections,
+    commonContexts: categoryTips.commonContexts,
+    confusableWords: confusingWordMap[headwordOf(seed.word)] ?? [],
+    reminder: categoryTips.reminder,
+  };
+}
+
+function buildMemoryTip(seed, profile) {
+  if (cleanText(profile.memoryTip)) {
+    return cleanText(profile.memoryTip);
+  }
+
+  if (!topPriorityWordSet.has(headwordOf(seed.word))) {
+    return "";
+  }
+
+  const roots = uniqueList(profile.roots ?? []);
+  const collocations = uniqueList(profile.collocations ?? seed.collocations ?? []);
+  const related = uniqueList([...(profile.relatedWords ?? []), ...(profile.synonyms ?? [])]).slice(0, 3);
+
+  if (roots.length > 0) {
+    return `${seed.word} 可以從字根字首來記：${roots.join("；")}。再搭配 ${collocations.slice(0, 2).join("、")} 這些常見用法一起記，會更容易記住。`;
+  }
+
+  if (related.length > 0) {
+    return `${seed.word} 常和 ${related.join("、")} 一起出現在 ${seed.category} 情境中，可以用同一個主題一起記憶。`;
+  }
+
+  if (collocations.length > 0) {
+    return `${seed.word} 常見搭配有 ${collocations.slice(0, 2).join("、")}，把搭配詞和情境一起記，比單背中文更有效。`;
+  }
+
+  return `${seed.word} 常出現在 ${seed.category} 情境中，建議連同例句一起朗讀，幫助記住實際用法。`;
 }
 
 const collocationVerbSet = new Set([
@@ -308,14 +534,14 @@ function buildExampleFromCollocation(seed, collocations) {
 
   if (seed.partOfSpeech === "verb") {
     return {
-      example: `The team will ${primary} before Friday.`,
-      exampleZh: `團隊會在星期五前${seed.meaning}相關事項。`,
+      example: `The operations team will ${primary} this week.`,
+      exampleZh: `營運團隊將於本週完成與「${seed.meaning}」有關的工作。`,
     };
   }
 
   return {
-    example: `Please ${primary} before the meeting.`,
-    exampleZh: `請在會議前先處理${seed.meaning}。`,
+    example: `The staff will ${primary} after confirming the details.`,
+    exampleZh: `工作人員會在確認細節後處理與「${seed.meaning}」相關的事項。`,
   };
 }
 
@@ -328,21 +554,21 @@ function buildGenericExample(seed) {
   if (seed.partOfSpeech === "verb") {
     if (["Purchasing", "Supply Chain", "Logistics"].includes(seed.category)) {
       return {
-        example: `Please ${seed.word} the order before this afternoon.`,
-        exampleZh: `請在今天下午前${seed.meaning}這筆訂單。`,
+        example: `Please ${seed.word} the order after the vendor confirms the price.`,
+        exampleZh: `請在供應商確認價格後，完成這筆訂單的「${seed.meaning}」作業。`,
       };
     }
 
     if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(seed.category)) {
       return {
         example: `The technician will ${seed.word} the equipment this morning.`,
-        exampleZh: `技術人員今天上午會${seed.meaning}設備。`,
+        exampleZh: `技術人員今天上午會對設備進行「${seed.meaning}」相關作業。`,
       };
     }
 
     return {
-      example: `Please ${seed.word} the document before the deadline.`,
-      exampleZh: `請在截止日前${seed.meaning}這份文件。`,
+      example: `Please ${seed.word} the document and share it with the team.`,
+      exampleZh: `請完成這份文件的「${seed.meaning}」處理後，再與團隊分享。`,
     };
   }
 
@@ -350,59 +576,59 @@ function buildGenericExample(seed) {
     if (["Finance", "Accounting", "Banking", "Insurance"].includes(seed.category)) {
       return {
         example: `The manager requested a ${seed.word} financial report.`,
-        exampleZh: `經理要求一份${seed.meaning}的財務報告。`,
+        exampleZh: `主管要求一份更「${seed.meaning}」的財務報告。`,
       };
     }
 
     return {
       example: `The manager asked for a ${seed.word} plan.`,
-      exampleZh: `經理要求一份${seed.meaning}的計畫。`,
+      exampleZh: `主管要求提出一份更「${seed.meaning}」的計畫。`,
     };
   }
 
   if (["Finance", "Accounting", "Banking", "Insurance"].includes(seed.category)) {
     return {
-      example: `The finance team reviewed the ${seed.word} before closing the monthly report.`,
-      exampleZh: `財務團隊在完成月報前檢查了${seed.meaning}。`,
+      example: `The finance team discussed the ${seed.word} figures in the monthly report.`,
+      exampleZh: `財務團隊在月報中討論了與「${seed.meaning}」有關的數據。`,
     };
   }
 
   if (["Purchasing", "Supply Chain", "Logistics"].includes(seed.category)) {
     return {
-      example: `The purchasing team reviewed the ${seed.word} before confirming the shipment.`,
-      exampleZh: `採購團隊在確認出貨前檢查了${seed.meaning}。`,
+      example: `The purchasing team checked the ${seed.word} before releasing the order.`,
+      exampleZh: `採購團隊在放行訂單前，確認了與「${seed.meaning}」有關的資料。`,
     };
   }
 
   if (["Manufacturing", "Maintenance", "Engineering", "Quality Control"].includes(seed.category)) {
     return {
-      example: `The factory monitored the ${seed.word} during today's production run.`,
-      exampleZh: `工廠在今天的生產過程中持續監控${seed.meaning}。`,
+      example: `Plant staff monitored the ${seed.word} during the morning shift.`,
+      exampleZh: `工廠人員在早班期間監控了與「${seed.meaning}」有關的狀況。`,
     };
   }
 
   if (["Travel", "Hotel", "Airport", "Dining", "Entertainment"].includes(seed.category)) {
     return {
-      example: `The staff confirmed the ${seed.word} for tomorrow's guests.`,
-      exampleZh: `工作人員已為明天的來賓確認${seed.meaning}。`,
+      example: `The staff confirmed the ${seed.word} for tomorrow's visitors.`,
+      exampleZh: `服務人員已確認明天訪客的「${seed.meaning}」安排。`,
     };
   }
 
   if (["Customer Service", "Contract", "Email"].includes(seed.category)) {
     return {
-      example: `The team checked the ${seed.word} before replying to the client.`,
-      exampleZh: `團隊在回覆客戶前確認了${seed.meaning}。`,
+      example: `Customer service checked the ${seed.word} before replying to the client.`,
+      exampleZh: `客服在回覆客戶前，先確認了與「${seed.meaning}」相關的內容。`,
     };
   }
 
   return {
-    example: `The team reviewed the ${seed.word} during the meeting.`,
-    exampleZh: `團隊在會議中檢視了${seed.meaning}。`,
+    example: `The department included the ${seed.word} in this week's update.`,
+    exampleZh: `部門在本週更新中納入了與「${seed.meaning}」有關的內容。`,
   };
 }
 
 function buildEntry(seed) {
-  const profile = wordQualityProfiles[headwordOf(seed.word)] ?? {};
+  const profile = mergedWordQualityProfiles[headwordOf(seed.word)] ?? {};
   const fallbackExample = buildGenericExample(seed);
 
   return {
@@ -421,6 +647,8 @@ function buildEntry(seed) {
     relatedWords: uniqueList(profile.relatedWords ?? []).filter(
       (relatedWord) => headwordOf(relatedWord) !== headwordOf(seed.word),
     ),
+    toeicTips: buildToeicTips(seed, profile),
+    memoryTip: buildMemoryTip(seed, profile),
     category: seed.category,
     categoryZh: seed.categoryZh,
     level: seed.level,
@@ -513,6 +741,7 @@ export const vocabularyDataSources = [
   "src/data/vocabulary/index.js",
   "src/data/vocabulary/catalog.js",
   "src/data/vocabulary/expansion-seeds.js",
+  "src/data/vocabulary/high-frequency-profiles.js",
 ];
 
 export {
