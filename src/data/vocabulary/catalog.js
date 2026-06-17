@@ -392,6 +392,8 @@ export const extraVocabularySeeds = [
   seed("sales forecast", "銷售預測", "noun", "Sales", "green", 4, ["prepare a sales forecast", "monthly sales forecast"]),
   seed("follow-up", "後續追蹤", "noun", "Customer Service", "normal", 4, ["send a follow-up", "follow-up email"]),
   seed("product launch", "產品上市", "noun", "Marketing", "green", 4, ["product launch plan", "successful product launch"]),
+  seed("meeting", "會議", "noun", "Meeting", "easy", 5, ["attend the meeting", "meeting agenda"]),
+  seed("schedule", "時程表", "noun", "Meeting", "easy", 5, ["update the schedule", "review the schedule"]),
   ...supplementalVocabularySeeds,
 ];
 
